@@ -35,12 +35,12 @@ class APITestCase(TransactionTestCase):
         extra_keys = set(found_model['fields'].keys()) - set(expected_model['fields'].keys())
         missing_keys = set(expected_model['fields'].keys()) - set(found_model['fields'].keys())
         unequal_keys = [
-            k for k in list(expected_model['fields'].keys())
+            k for k in expected_model['fields'].keys()
                 if k in found_model['fields'] and found_model['fields'][k] != expected_model['fields'][k]
         ]
-        problems = ['Extra key: "%s"' % k for k in extra_keys] + \
-                   ['Missing key: "%s"' % k for k in missing_keys] + \
-                   ['Value for key "%s" unequal: %r != %r' % (k, expected_model['fields'][k], found_model['fields'][k]) for k in unequal_keys]
+        problems = [u'Extra key: "%s"' % k for k in extra_keys] + \
+                   [u'Missing key: "%s"' % k for k in missing_keys] + \
+                   [u'Value for key "%s" unequal: %r != %r' % (k, expected_model['fields'][k], found_model['fields'][k]) for k in unequal_keys]
         if problems:
             raise AssertionError('Model "%s:%s" was incorrect:\n%s' % (expected_model['model'], expected_model['pk'], '\n'.join(problems)))
 
@@ -100,8 +100,8 @@ class TestGeneric(APITestCase):
         self.assertEqual(int(change_entry.object_id), runner.id)
         self.assertEqual(change_entry.content_type, ContentType.objects.get_for_model(models.Runner))
         self.assertEqual(change_entry.action_flag, LogEntryCHANGE)
-        self.assertIn('Set name to "%s".' % runner.name, change_entry.change_message)
-        self.assertIn('Set stream to "%s".' % runner.stream, change_entry.change_message)
+        self.assertIn(u'Set name to "%s".' % runner.name, change_entry.change_message)
+        self.assertIn(u'Set stream to "%s".' % runner.stream, change_entry.change_message)
 
     def test_change_log(self):
         old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
@@ -113,9 +113,9 @@ class TestGeneric(APITestCase):
         self.assertEqual(int(entry.object_id), runner.id)
         self.assertEqual(entry.content_type, ContentType.objects.get_for_model(models.Runner))
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
-        self.assertIn('Changed name from "%s" to "%s".' % (old_runner.name, runner.name), entry.change_message)
-        self.assertIn('Changed stream from empty to "%s".' % runner.stream, entry.change_message)
-        self.assertIn('Changed youtube from "%s" to empty.' % old_runner.youtube, entry.change_message)
+        self.assertIn(u'Changed name from "%s" to "%s".' % (old_runner.name, runner.name), entry.change_message)
+        self.assertIn(u'Changed stream from empty to "%s".' % runner.stream, entry.change_message)
+        self.assertIn(u'Changed youtube from "%s" to empty.' % old_runner.youtube, entry.change_message)
 
     def test_change_log_m2m(self):
         run = models.SpeedRun.objects.create(name='Test Run', run_time='0:15:00')
@@ -128,7 +128,7 @@ class TestGeneric(APITestCase):
         self.assertEqual(int(entry.object_id), run.id)
         self.assertEqual(entry.content_type, ContentType.objects.get_for_model(models.SpeedRun))
         self.assertEqual(entry.action_flag, LogEntryCHANGE)
-        self.assertIn('Changed runners from empty to "%s".' % ([str(runner1), str(runner2)],), entry.change_message)
+        self.assertIn(u'Changed runners from empty to "%s".' % ([unicode(runner1), unicode(runner2)],), entry.change_message)
 
     def test_delete_log(self):
         old_runner = models.Runner.objects.create(name='PJ', youtube='TheSuperSNES')
@@ -196,14 +196,14 @@ class TestSpeedRun(APITestCase):
                 giantbomb_id=run.giantbomb_id,
                 name=run.name,
                 order=run.order,
-                public=str(run),
+                public=unicode(run),
                 release_year=run.release_year,
                 run_time=run.run_time,
                 runners=[runner.id for runner in run.runners.all()],
                 setup_time=run.setup_time,
                 starttime=format_time(run.starttime) if run.starttime else run.starttime,
             ),
-            model='tracker.speedrun',
+            model=u'tracker.speedrun',
             pk=run.id,
         )
 
@@ -359,3 +359,28 @@ class TestPrize(APITestCase):
         request.user = self.add_user
         data = self.parseJSON(tracker.views.api.add(request), status_code=400)
         self.assertEqual('Foreign Key relation could not be found', data['error'])
+
+
+class TestEvent(APITestCase):
+    model_name = 'event'
+
+    def setUp(self):
+        super(TestEvent, self).setUp()
+
+    def test_event_annotations(self):
+        models.Donation.objects.create(event=self.event, amount=10, domainId='123456')
+        models.Donation.objects.create(event=self.event, amount=5, domainId='123457', transactionstate='COMPLETED')
+        request = self.factory.get('/api/v1/search', dict(type='event'))
+        request.user = self.add_user
+        data = self.parseJSON(tracker.views.api.search(request))
+        self.assertEqual(len(data), 2)
+        event_data = next(e for e in data if e['pk'] == self.locked_event.id)['fields']
+        self.assertEqual(event_data['amount'], '0.00')
+        self.assertEqual(event_data['count'], '0')
+        self.assertEqual(event_data['max'], '0.00')
+        self.assertEqual(event_data['avg'], '0.0')
+        event_data = next(e for e in data if e['pk'] == self.event.id)['fields']
+        self.assertEqual(event_data['amount'], '5.00')
+        self.assertEqual(event_data['count'], '1')
+        self.assertEqual(event_data['max'], '5.00')
+        self.assertEqual(event_data['avg'], '5.0')

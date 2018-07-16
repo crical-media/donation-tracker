@@ -140,10 +140,6 @@ class RenderTimeNode(template.Node):
     except template.VariableDoesNotExist:
       return ''
 
-@register.simple_tag(takes_context=True, name='bid')
-def do_bid(bid):
-  return '' # ???
-
 
 @register.simple_tag(takes_context=True, name='donor_link')
 def donor_link(context, donor, event=None):
@@ -162,6 +158,7 @@ def forumfilter(value, autoescape=None):
   return mark_safe(esc(value).replace('\n', '<br />'))
 forumfilter.is_safe = True
 forumfilter.needs_autoescape = True
+
 
 @register.filter
 def money(value):
@@ -194,16 +191,6 @@ def filmod(value,arg):
 @register.filter("negate")
 def negate(value):
   return not value
-
-# TODO: maybe store visibility option in UserProfile
-@register.filter
-def public_user_name(user):
-    if user.donor:
-        return user.donor.visible_name()
-    elif user.username == user.email:
-        return 'Anonymous'
-    else:
-        return user.username
 
 @register.simple_tag
 def admin_url(obj):
