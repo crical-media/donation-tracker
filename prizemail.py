@@ -10,7 +10,7 @@ AuthUser = get_user_model()
 import post_office.mail
 import post_office.models
 
-import settings
+from django.conf import settings
 
 from tracker.models import *
 import tracker.viewutil as viewutil

@@ -9,8 +9,8 @@ from django.urls import reverse
 from django.utils.six.moves.urllib.parse import urlparse
 from django.views.decorators.cache import never_cache
 
-import settings
 import tracker.auth
+from django.conf import settings
 import tracker.forms as forms
 import tracker.viewutil as viewutil
 from . import common as views_common

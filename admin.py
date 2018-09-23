@@ -17,8 +17,9 @@ from django.urls import reverse, path
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-import settings
 import tracker.filters as filters
+from django.conf import settings
+
 import tracker.forms as forms
 import tracker.horaro as horaro
 import tracker.logutil as logutil
@@ -712,7 +713,7 @@ class EventAdmin(CustomModelAdmin):
   list_editable = ['locked']
   readonly_fields = ['scheduleid', 'admin_horaro_check_cols']
   fieldsets = [
-    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'date', 'timezone', 'locked'] }),
+    (None, { 'fields': ['short', 'name', 'receivername', 'targetamount', 'minimumdonation', 'datetime', 'timezone', 'locked'] }),
     ('Paypal', {
       'classes': ['collapse'],
       'fields': ['paypalemail', 'usepaypalsandbox', 'paypalcurrency', ]
@@ -1018,7 +1019,13 @@ class SpeedRunAdmin(CustomModelAdmin):
   inlines = [BidInline,PrizeInline]
   list_display = ('name', 'category', 'description', 'deprecated_runners', 'starttime', 'run_time', 'setup_time')
   list_select_related = ('event',)
-  fieldsets = [(None, { 'fields': ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'starttime', 'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',) }),]
+  fieldsets = [
+    (None,
+     { 'fields':
+         ('name', 'display_name', 'category', 'console', 'release_year', 'description', 'event', 'order', 'starttime',
+          'run_time', 'setup_time', 'deprecated_runners', 'runners', 'coop', 'tech_notes',)
+     }),
+  ]
   readonly_fields = ('deprecated_runners', 'starttime')
   actions = ['start_run']
 

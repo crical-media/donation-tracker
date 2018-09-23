@@ -1,33 +1,40 @@
-import collections
-import datetime
+import paypal.standard.forms
 import re
 from decimal import *
+import collections
+import datetime
 
-import betterforms.multiform
-import django.core.exceptions
-import django.db.utils
-import post_office
-import post_office.models
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
+from django.utils.translation import ugettext as _
+from django.utils.safestring import mark_safe
+from django.utils.html import format_html
+from django.template import Template
+from django.utils import timezone
 from django.core import validators
 from django.core.exceptions import NON_FIELD_ERRORS
+from django.db import transaction
+import django.db.utils
 from django.forms import formset_factory, modelformset_factory
-from django.utils import timezone
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext as _
-from paypal.standard.forms import PayPalPaymentsForm
+import django.core.exceptions
 
-import tracker.auth as auth
-import tracker.prizemail as prizemail
+import post_office
+import post_office.models
+
+import betterforms.multiform
+
+from django.conf import settings
+
+from tracker import models
 import tracker.util
 import tracker.viewutil as viewutil
-import tracker.widgets
-from tracker import models
+import tracker.prizemail as prizemail
+import tracker.auth as auth
 from tracker.validators import *
+import tracker.widgets
+from tracker.templatetags.donation_tags import address as address_template
 
 __all__ = [
     'PayPalDonationsForm',
@@ -58,7 +65,7 @@ __all__ = [
 ]
 
 
-class PayPalDonationsForm(PayPalPaymentsForm):
+class PayPalDonationsForm(paypal.standard.forms.PayPalPaymentsForm):
     """Override default payments form to default to donate button, and support test mode setting per event.
     This removes the need for a custom fork of django-paypal.
     """
@@ -230,7 +237,7 @@ class DonationBidForm(forms.Form):
                 raise forms.ValidationError(
                     "This bid not open for new donations anymore.")
         except Exception as e:
-            raise forms.ValidationError("Bid does not exist.")
+            raise forms.ValidationError("Bid does not exist or is closed.")
         return bid
 
     def clean_amount(self):

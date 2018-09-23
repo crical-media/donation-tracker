@@ -2,13 +2,13 @@ import datetime
 from decimal import Decimal
 
 import pytz
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 from django.db import models
 from django.db.models import Sum, Q
-from django.urls import reverse
 
-import settings
 import tracker.util as util
 from .event import LatestEvent, TimestampField
 from ..irc import TwitchAnnouncer
@@ -71,7 +71,7 @@ class Prize(models.Model):
 
   class Meta:
     app_label = 'tracker'
-    ordering = [ 'event__date', 'startrun__starttime', 'starttime', 'name' ]
+    ordering = [ 'event__datetime', 'startrun__starttime', 'starttime', 'name' ]
     unique_together = ( 'name', 'event' )
 
   def natural_key(self):
