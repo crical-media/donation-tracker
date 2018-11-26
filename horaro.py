@@ -14,6 +14,14 @@ from tracker.models.event import TimestampField
 EVENT_URL = 'https://horaro.org/-/api/v1/events/{event_id}'
 SCHEDULES_URL = 'https://horaro.org/-/api/v1/events/{event_id}/schedules'
 
+# Ignore games with this text in the name, i.e. setup blocks, preshow, finale.
+IGNORE_LIST = (
+    'setup',
+    'preshow',
+    'pre-show',
+    'finale',
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -127,9 +135,22 @@ def merge_event_schedule(event):
                     game = game[:i].strip()
 
             # Raise error if we have duplicate games in the schedule.
+            # Skip any games with "setup" in the name, i.e. setup blocks.
             unique_name = game.lower()
+
+            ignore = False
+            for iname in IGNORE_LIST:
+                if re.search(r'\b{}\b'.format(iname), unique_name):
+                    ignore = True
+                    break
+
+            if ignore:
+                logger.debug("Skipping setup item {!r}".format(item['data']))
+                continue
+
             if unique_name in games_seen:
                 raise HoraroError("Schedule has duplicate game entry: {!r}".format(game))
+
             games_seen.add(unique_name)
 
             # Get commentators if we have a commentators column.
@@ -157,7 +178,7 @@ def merge_event_schedule(event):
 
                     # Skip runners that say generic things or are empty.
                     l = set(u.lower() for u in r.split())
-                    if not r or l.intersection({'everyone', 'everybody', 'n/a'}):
+                    if not r or l.intersection({'everyone', 'everybody', 'n/a', 'staff'}):
                         continue
                     # Skip if no word characters, ex. "??"
                     elif not re.search(r'\w', r):
@@ -187,8 +208,8 @@ def merge_event_schedule(event):
             run.run_time = str(dateparse.parse_duration(item['length']))
             run.starttime = dateparse.parse_datetime(item['scheduled'])
             run.endtime = run.starttime + datetime.timedelta(milliseconds=i(run.run_time) + i(run.setup_time))
-            # Only fix times for runs after the first.
-            run.save(fix_time=order > 1)
+            # Use times from the Horaro schedule.
+            run.save(fix_time=False)
 
             # Make runner records.
             for u in run.runners.all():
@@ -211,14 +232,14 @@ def merge_event_schedule(event):
                     run.runners.add(u)
 
             # Save the run again to update the runners field.
-            run.save(fix_time=order > 1)
+            run.save(fix_time=False)
 
             # Increment counter.
             num_runs += 1
 
     # Set event start date based on first run.
     qs = SpeedRun.objects.filter(event=event).aggregate(start_date=Min('starttime'))
-    event.date = qs['start_date']
+    event.datetime = qs['start_date']
     event.save()
 
     return num_runs
