@@ -8,13 +8,13 @@ body {
     font-family: 'Source Sans Pro', Verdana;
     font-weight: 400;
     font-size: 13px;
-    background-color: #f2f2f2;
-    color: #000;
+    background-color: #fff;
+    color: white;
     background-image: url("images/background.png");
 }
 
 a {
-	color: #33B5E5;
+	color: white;
 	text-decoration: none;
 }
 
@@ -32,11 +32,11 @@ a:hover {
 }
 
 #container {
-	background-color: #fff;
 	margin-left: auto;
 	margin-right: auto;
 	width: 980px;
 	padding: 20px;
+        background-image: url("images/dark_background.png");
 }
 
 input, textarea, select {
@@ -45,6 +45,7 @@ input, textarea, select {
 	font-family: 'Source Sans Pro', Verdana;
 	font-size: 12px;
 	margin: 5px 0px;
+        color: black;
 }
 
 #right {
@@ -67,6 +68,7 @@ padding-right: 20px;
 	background-color: #f2f2f2;
 	margin: 10px 0px;
 	padding: 10px;
+        color: black;
 }
 
 #info span {
@@ -74,8 +76,7 @@ padding-right: 20px;
 }
 
 #footer {
-
-	background-color: #333;
+	/*background-color: #333; not needed imo*/
 	color: #fff;
 	padding: 20px;
 }
@@ -102,6 +103,7 @@ input[type="submit"] {
 	clear: both;
 	display: block;
 	margin: 20px auto;
+        color: black;
 }
 
 /* Donation Page Input Styles */
