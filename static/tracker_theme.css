@@ -1,14 +1,21 @@
+/* custom */
+
+
 body {
-    background-color: #272b30;
+    background-image: url("images/background.png");
     color: white;
 }
 
 .navbar-nav li a {
-    color: #269abc !important;
+    color: #ffffff !important;
 }
 
 .navbar-nav li a:hover {
     color: white !important;
+}
+
+.dropdown-menu > li > a{
+	color: #000 !important;
 }
 
 .table-striped > tbody > tr:nth-of-type(odd) {

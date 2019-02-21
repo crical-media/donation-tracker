@@ -45,12 +45,12 @@
     {% endblock %}
 </head>
 <body>
-
 {% block nav %}
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
+                    <li><a href="https://dev.bingothon.com/"><img class="home-button" src="https://dev.bingothon.com/pictures/logo.jpg"/></a></li>
                     <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
                     <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>
                     <li><a href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "Prizes" %}</a></li>
