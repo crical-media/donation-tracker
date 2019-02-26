@@ -49,6 +49,9 @@ class UpcomingBidsView(View):
         results = []
 
         for bid in bids:
+            # ignore bids for no game for now
+            if bid.speedrun == None:
+                continue
             result = {
                 'game': bid.speedrun.name,
                 'bid': bid.name,
