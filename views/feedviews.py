@@ -54,6 +54,7 @@ class UpcomingBidsView(View):
                 'bid': bid.name,
                 'goal': bid.goal,
                 'amount_raised': bid.total,
+                'allow_custom_options': bid.allowuseroptions,
                 'options': [],
             }
             for option in bid.options.all():
