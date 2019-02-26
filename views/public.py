@@ -97,7 +97,6 @@ def bidindex(request, event=None):
     bidNameSpan = 2
   else:
     bidNameSpan = 1
-
   return views_common.tracker_response(request, 'tracker/bidindex.html', { 'bids': bids, 'total': total, 'event': event, 'bidNameSpan' : bidNameSpan, 'choiceTotal': choiceTotal, 'challengeTotal': challengeTotal })
 
 @cache_page(60)
@@ -271,11 +270,11 @@ def run(request,id):
     run = SpeedRun.objects.get(pk=id)
     runners = run.runners.all()
     event = run.event
-    bids = filters.run_model_query('bid', {'run': id})
-    bids = viewutil.get_tree_queryset_descendants(Bid, bids, include_self=True).select_related('speedrun','event', 'parent').prefetch_related('options')
-    topLevelBids = [bid for bid in bids if bid.parent == None]
+    bids = Bid.objects.filter(state__in=('OPENED', 'CLOSED'), speedrun_id=id).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
+    # bids = filters.run_model_query('bid', {'run': id}).annotate(speedrun_name=F('speedrun__name'), event_name=F('event__name'))
+    bids = [bid_info(bid, bids) for bid in bids if bid.parent_id == None]
 
-    return views_common.tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : topLevelBids })
+    return views_common.tracker_response(request, 'tracker/run.html', { 'event': event, 'run' : run, 'runners': runners, 'bids' : bids })
 
   except SpeedRun.DoesNotExist:
     return views_common.tracker_response(request, template='tracker/badobject.html', status=404)
