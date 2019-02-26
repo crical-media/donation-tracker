@@ -60,7 +60,7 @@ class UpcomingBidsView(View):
                 'allow_custom_options': bid.allowuseroptions,
                 'options': [],
             }
-            for option in bid.options.all():
+            for option in bid.options.filter(state='OPENED'):
                 result['options'].append({
                     'name': option.name,
                     'amount_raised': option.total,
