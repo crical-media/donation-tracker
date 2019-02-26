@@ -38,13 +38,14 @@ class UpcomingBidsView(View):
     def get(self, request, event, *args, **kwargs):
         # Get the upcoming bids and their options + totals.
         event = viewutil.get_event(event)
-        now = timezone.now()
+        # now = timezone.now()
         params = {
             'event': event.id,
             'state': 'OPENED',
         }
-        bids = filters.run_model_query('bid', params).filter(speedrun__endtime__gte=now).select_related(
-            'speedrun').prefetch_related('options')
+        # .filter(speedrun__endtime__gte=now)
+        bids = filters.run_model_query('bid', params).select_related(
+            'speedrun').prefetch_related('options').order_by('speedrun__endtime')
         results = []
 
         for bid in bids:
@@ -66,12 +67,34 @@ class UpcomingBidsView(View):
 
         return JsonResponse({'results': results})
 
+class RecentDonationsView(View):
+    def get(self, request, event, *args, **kwargs):
+        event = viewutil.get_event(event)
+        params = {
+            'event': event.id,
+            'transactionstate':'COMPLETED',
+        }
+        # get all completed donations, get the last 20 recieved ones
+        donations = filters.run_model_query('donation', params).select_related('donor').order_by('-timereceived')[:20]
+        results = []
+        for donation in donations:
+            results.append({
+                'id': donation.id,
+                'donor': donation.donor.visible_name(),
+                'comment': donation.comment if donation.commentstate == 'APPROVED' else '',
+                'amount': donation.amount,
+            })
+        return JsonResponse({'results':results})
+
+
+
 
 class CurrentDonationsView(View):
     def get(self, request, event, *args, **kwargs):
         event = viewutil.get_event(event)
         params = {
             'event': event.id,
+            'transactionstate':'COMPLETED',
         }
         agg = filters.run_model_query('donation', params).aggregate(amount=Coalesce(Sum('amount'), Decimal('0.00')))
 
