@@ -1058,7 +1058,7 @@ hr{
     cursor:pointer
 }
 .h1,.h2,.h3,.h4,.h5,.h6,h1,h2,h3,h4,h5,h6{
-    font-family:Cubano,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-family:Righteous,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight:500;
     line-height:1.1;
     color:#d33543
@@ -5800,7 +5800,7 @@ div.DTFC_LeftFootWrapper table,div.DTFC_RightFootWrapper table{
 div.FixedHeader_Cloned table{
     margin:0!important
 }
-@font-face{
+/*@font-face{
     font-family:Cubano;
     src:url(/static/res/fonts/cubano-regular-webfont.eot);
     src:url(/static/res/fonts/cubano-regular-webfont.eot?#iefix) format('embedded-opentype'),url(/static/res/fonts/cubano-regular-webfont.woff) format('woff'),url(/static/res/fonts/cubano-regular-webfont.ttf) format('truetype'),url(/static/res/fonts/cubano-regular-webfont.svg#CubanoRegular) format('svg');
@@ -5827,7 +5827,24 @@ div.FixedHeader_Cloned table{
     src:url(/static/res/fonts/MuseoSans_300_Italic-webfont.eot?#iefix) format('embedded-opentype'),url(/static/res/fonts/MuseoSans_300_Italic-webfont.woff) format('woff'),url(/static/res/fonts/MuseoSans_300_Italic-webfont.ttf) format('truetype'),url(/static/res/fonts/MuseoSans_300_Italic-webfont.svg#museo_sans300_italic) format('svg');
     font-weight:400;
     font-style:italic
-}
+}*/
+/*substitute for cubano*/
+/* latin-ext */
+@font-face {
+    font-family: 'Righteous';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Righteous'), local('Righteous-Regular'), url(/static/fonts/Righteous-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  /* latin */
+  @font-face {
+    font-family: 'Righteous';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Righteous'), local('Righteous-Regular'), url(/static/fonts/Righteous-latin.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
 /*! jQuery UI - v1.10.4 - 2014-06-21 * http://jqueryui.com * Includes: jquery.ui.core.css, jquery.ui.resizable.css, jquery.ui.selectable.css, jquery.ui.accordion.css, jquery.ui.autocomplete.css, jquery.ui.button.css, jquery.ui.datepicker.css, jquery.ui.dialog.css, jquery.ui.menu.css, jquery.ui.progressbar.css, jquery.ui.slider.css, jquery.ui.spinner.css, jquery.ui.tabs.css, jquery.ui.tooltip.css * Copyright 2014 jQuery Foundation and other contributors;
  Licensed MIT */
 .ui-helper-hidden{
