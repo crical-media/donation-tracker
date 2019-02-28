@@ -55,17 +55,17 @@ class UpcomingBidsView(View):
             result = {
                 'game': bid.speedrun.name,
                 'bid': bid.name,
-                'goal': bid.goal,
-                'amount_raised': bid.total,
+                'goal': None if bid.goal == None else float(bid.goal),
+                'amount_raised': float(bid.total),
                 'allow_custom_options': bid.allowuseroptions,
                 'options': [],
             }
             for option in bid.options.filter(state='OPENED'):
                 result['options'].append({
                     'name': option.name,
-                    'amount_raised': option.total,
+                    'amount_raised': float(option.total),
                 })
-                result['amount_raised'] += option.total
+                result['amount_raised'] += float(option.total)
 
             results.append(result)
 
@@ -86,7 +86,7 @@ class RecentDonationsView(View):
                 'id': donation.id,
                 'donor': donation.donor.visible_name(),
                 'comment': donation.comment if donation.commentstate == 'APPROVED' else '',
-                'amount': donation.amount,
+                'amount': float(donation.amount),
             })
         return JsonResponse({'results':results})
 
@@ -102,7 +102,9 @@ class CurrentDonationsView(View):
         }
         agg = filters.run_model_query('donation', params).aggregate(amount=Coalesce(Sum('amount'), Decimal('0.00')))
 
+        print(type(agg["amount"]))
+
         return JsonResponse({
-            'total': agg['amount'],
+            'total': float(agg['amount']),
         })
 
