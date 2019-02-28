@@ -102,8 +102,6 @@ class CurrentDonationsView(View):
         }
         agg = filters.run_model_query('donation', params).aggregate(amount=Coalesce(Sum('amount'), Decimal('0.00')))
 
-        print(type(agg["amount"]))
-
         return JsonResponse({
             'total': float(agg['amount']),
         })
