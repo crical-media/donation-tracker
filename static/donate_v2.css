@@ -5,6 +5,8 @@ body {
     font-family: Arial, sans-serif;
     font-size: 14pt;
     background-color: #272b30;
+	background-image: url('images/background.png');
+	background-size: cover;
 }
 
 h1 {
@@ -25,9 +27,9 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .donate-container {
-    background-color: #2e3338;
-    border: 5px solid #269abc;
-    padding: 1em;
+    background-color: rgba(0,0,0,0.2);
+    border: 3px solid #ffffff;/*#269abc;*/
+    padding: 2em;
     margin-bottom: 2em;
 }
 
@@ -36,16 +38,16 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .panel-heading {
-    background-color: #353a41 !important;
+    background-color: hsla(0, 0%, 25%, 1) !important;
     color: white !important;
 }
 
 .panel-body, .list-group-item {
-    background-color: #2e3338 !important;
+    background-color: #45191a !important;
 }
 
 .panel-default, .panel-heading, .panel-title, .panel-body, .list-group, .list-group-item {
-    border-color: #269abc !important;
+    border-color: #ffffff !important;
 }
 
 @media screen and (min-width: 992px) {
@@ -87,7 +89,7 @@ a, a:hover, a:visited, a:link, a:active {
     border: 1px solid darkgray;
     width: 5em;
     height: 2em;
-    background-color: #272b30;
+    background-color: hsla(0, 0%, 25%, 1);
     /*color: black;*/
     text-align: center;
 }
@@ -116,7 +118,7 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .bid-total-panel {
-    background-color: #353a41;
+    background-color: #45191a;
     display: inline-block;
     position: relative;
     top: -60px;
@@ -124,7 +126,7 @@ a, a:hover, a:visited, a:link, a:active {
 
 .bid-total-button {
     font-family: 'FontAwesome';
-    background-color: grey;
+    background-color: hsla(0, 0%, 25%, 1);
 }
 
 .bid-total-button-opened::after {
