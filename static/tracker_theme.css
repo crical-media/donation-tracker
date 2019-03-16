@@ -3,9 +3,9 @@
 
 body {
     background:
-    url("../pictures/background-home-top.png") top left no-repeat fixed,
-    url("../pictures/background-home-bottom.png") bottom right no-repeat fixed,
-    linear-gradient(-128deg, #982f33 0, #220a0b 100%) 100% no-repeat fixed;
+        url("images/background-home-top.png") top left no-repeat fixed,
+        url("images/background-home-bottom.png") bottom right no-repeat fixed,
+        linear-gradient(-128deg, #982f33 0, #220a0b 100%) 100% no-repeat fixed;
 }
 
 .navbar-nav li a {
