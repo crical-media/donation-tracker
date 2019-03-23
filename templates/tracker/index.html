@@ -23,7 +23,7 @@
             {{ agg.max|money }}/{{ agg.avg|money }}
         </small>
     </h2>
-    <div class="col-xs-4 col-xs-offset-4">
+    <div class="col-xs-6 col-xs-offset-3">
         <p class="center-block"><br /></p>
         <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:runindex' event=event.short %}">{% trans "View Runs" %} ({{ count.runs }})</a></p>
         <p class="center-block"><a class="btn btn-default btn-block" href="{% url 'tracker:prizeindex' event=event.short %}">{% trans "View Prizes" %} ({{ count.prizes }})</a></p>
