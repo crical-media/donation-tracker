@@ -38,13 +38,12 @@ class UpcomingBidsView(View):
     def get(self, request, event, *args, **kwargs):
         # Get the upcoming bids and their options + totals.
         event = viewutil.get_event(event)
-        # now = timezone.now()
+        now = timezone.now()
         params = {
             'event': event.id,
-            'state': 'OPENED',
         }
         # .filter(speedrun__endtime__gte=now)
-        bids = filters.run_model_query('bid', params).select_related(
+        bids = filters.run_model_query('bid', params).filter(state__in=['OPENED','CLOSED']).select_related(
             'speedrun').prefetch_related('options').order_by('speedrun__endtime')
         results = []
 
@@ -58,6 +57,8 @@ class UpcomingBidsView(View):
                 'goal': None if bid.goal == None else float(bid.goal),
                 'amount_raised': float(bid.total),
                 'allow_custom_options': bid.allowuseroptions,
+                'state': bid.state,
+                'run_started': bid.speedrun.starttime < now,
                 'options': [],
             }
             for option in bid.options.filter(state='OPENED'):
