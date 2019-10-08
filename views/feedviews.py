@@ -61,7 +61,7 @@ class UpcomingBidsView(View):
                 'run_started': bid.speedrun.starttime < now,
                 'options': [],
             }
-            for option in bid.options.filter(state='OPENED'):
+            for option in bid.options.filter(state__in=['OPENED','CLOSED']):
                 result['options'].append({
                     'name': option.name,
                     'amount_raised': float(option.total),
