@@ -92,6 +92,32 @@ class RecentDonationsView(View):
         return JsonResponse({'results':results})
 
 
+class ActivePrizesView(View):
+    def get(self, request, event, *args, **kwargs):
+        event = viewutil.get_event(event)
+        params = {
+            'event': event.id,
+            'state': 'ACCEPTED',
+        }
+        prizes = filters.run_model_query('prize', params).select_related('startrun','endrun')
+        results = []
+        for prize in prizes:
+            result = {
+                'name': prize.name,
+                'provider': prize.provider,
+                'image': prize.image,
+                'starttime': None,
+                'endtime': None,
+                'minDonation': float(prize.minimumbid),
+            }
+            if prize.starttime:
+                result['starttime'] = prize.starttime
+                result['endtime'] = prize.endtime
+            elif prize.startrun:
+                result['starttime'] = prize.startrun.starttime
+                result['endtime'] = prize.endrun.endtime
+            results.append(result)
+        return JsonResponse({'results':results})
 
 
 class CurrentDonationsView(View):

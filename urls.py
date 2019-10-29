@@ -53,6 +53,7 @@ urlpatterns = [
     path('feed/upcoming_bids/<slug:event>', feedviews.UpcomingBidsView.as_view(), name='feed_upcoming_bids'),
     path('feed/current_donations/<slug:event>', feedviews.CurrentDonationsView.as_view(), name='feed_current_donations'),
     path('feed/donations/<slug:event>', feedviews.RecentDonationsView.as_view(), name='feed_recent_donations'),
+    path('feed/prizes/<slug:event>', feedviews.ActivePrizesView.as_view(), name='feed_prizes'),
 
     path('user/index', user.user_index, name='user_index'),
     path('user/user_prize/<int:prize>', user.user_prize, name='user_prize'),
