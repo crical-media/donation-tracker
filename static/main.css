@@ -990,7 +990,7 @@ button,input,select,textarea{
     line-height:inherit
 }
 a{
-    color:#d33543;
+    color:#5fdaff;
     text-decoration:none
 }
 a:focus,a:hover{
@@ -1061,7 +1061,7 @@ hr{
     font-family:Righteous,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight:500;
     line-height:1.1;
-    color:#d33543
+    color:#040044
 }
 .h1 .small,.h1 small,.h2 .small,.h2 small,.h3 .small,.h3 small,.h4 .small,.h4 small,.h5 .small,.h5 small,.h6 .small,.h6 small,h1 .small,h1 small,h2 .small,h2 small,h3 .small,h3 small,h4 .small,h4 small,h5 .small,h5 small,h6 .small,h6 small{
     font-weight:400;
@@ -7180,7 +7180,7 @@ a.stripe-button-el.disabled,fieldset[disabled] a.stripe-button-el{
     margin-bottom:24px
 }
 .medium-icon-blue .fa-stack-2x{
-    color:#d33543
+    color:#040044
 }
 .salty{
     background-image:url(/static/res/img/salty.png);
