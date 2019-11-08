@@ -2678,8 +2678,8 @@ a.btn.disabled,fieldset[disabled] a.btn{
 }
 .btn-info{
     color:#fff;
-    background-color:#d33543;
-    border-color:#d24a56
+    background-color:#040044;
+    border-color:#040044
 }
 .btn-info.focus,.btn-info:focus{
     color:#fff;

@@ -15,9 +15,10 @@ body {
     color: white;
     font-family: Arial, sans-serif;
     font-size: 14pt;
-    background-color: #272b30;
-	background-image: url('images/background.png');
-	background-size: cover;
+    background:
+          url("images/background-home-top-winter.png") top left no-repeat fixed,
+          url("images/background-home-bottom-winter.png") bottom right no-repeat fixed,
+          linear-gradient(-128deg, #627fbe 0, #050a1b 100%) 100% no-repeat fixed;
 }
 
 h1 {
@@ -111,7 +112,7 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .charity-name {
-    color: deepskyblue;
+    color: #040044;
 }
 
 .bid-amount-group {
