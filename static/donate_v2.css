@@ -55,7 +55,7 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .panel-body, .list-group-item {
-    background-color: #45191a !important;
+    background-color: #040044 !important;
 }
 
 .panel-default, .panel-heading, .panel-title, .panel-body, .list-group, .list-group-item {
@@ -130,7 +130,7 @@ a, a:hover, a:visited, a:link, a:active {
 }
 
 .bid-total-panel {
-    background-color: #45191a;
+    background-color: #040044;
     display: inline-block;
     position: relative;
     top: -60px;

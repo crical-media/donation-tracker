@@ -2688,7 +2688,7 @@ a.btn.disabled,fieldset[disabled] a.btn{
 }
 .btn-info.active,.btn-info:active,.btn-info:hover,.open>.dropdown-toggle.btn-info{
     color:#fff;
-    background-color:#bf3636;
+    background-color:#040044;
     border-color:#1b6d85
 }
 .btn-info.active.focus,.btn-info.active:focus,.btn-info.active:hover,.btn-info:active.focus,.btn-info:active:focus,.btn-info:active:hover,.open>.dropdown-toggle.btn-info.focus,.open>.dropdown-toggle.btn-info:focus,.open>.dropdown-toggle.btn-info:hover{
