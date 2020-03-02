@@ -6,6 +6,8 @@
 <head>
     <title>{% block title %}Base Title{% endblock %}</title>
 
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
     <link rel="stylesheet" type="text/css" href="{% static "jquery.datetimepicker.css" %}" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
 
@@ -46,6 +48,7 @@
         <div class="container">
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
+                    <li><a href="https://bingothon.com/"><img class="home-button" src="https://bingothon.com/pictures/logo-winter-square.png"/></a></li>
                     {% if event.short %}
                         <li><a href="{% url 'tracker:index' event=event.short %}">{% trans "Home" %}</a></li>
                         <li><a href="{% url 'tracker:runindex' event=event.short %}">{% trans "Runs" %}</a></li>
