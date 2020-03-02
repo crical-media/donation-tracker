@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models import signals
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils.html import format_html
 from timezone_field import TimeZoneField
 
 from tracker.validators import positive, nonzero
@@ -202,6 +203,39 @@ class Event(models.Model):
         help_text='Email template to use when the aprize has been shipped to its recipient).',
         related_name='event_prizeshippedtemplates',
         on_delete=models.SET_NULL,
+    )
+
+    # horaro info
+    horaro_id = models.CharField(
+        max_length=100,
+        verbose_name='Event ID',
+        blank=True,
+        default='',
+        help_text='ID or slug for Horaro event'
+    )
+    horaro_game_col = models.IntegerField(
+        verbose_name='Game Column',
+        blank=True,
+        null=True,
+        help_text='Column index for game info (start at 0)'
+    )
+    horaro_category_col = models.IntegerField(
+        verbose_name='Category Column',
+        blank=True,
+        null=True,
+        help_text='Column index for category info (start at 0)'
+    )
+    horaro_runners_col = models.IntegerField(
+        verbose_name='Runners Column',
+        blank=True,
+        null=True,
+        help_text='Column index for runner info (start at 0)'
+    )
+    horaro_commentators_col = models.IntegerField(
+        verbose_name='Commentators Column',
+        blank=True,
+        null=True,
+        help_text='Column index for commentator info (start at 0)'
     )
 
     def __str__(self):

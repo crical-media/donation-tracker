@@ -2,11 +2,14 @@ import csv
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib import admin
 from django.conf.urls import url
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -24,6 +27,7 @@ from .forms import (
 from .inlines import BidInline, EventBidInline
 from .util import CustomModelAdmin
 
+import tracker.horaro as horaro
 
 @register(models.Event)
 class EventAdmin(CustomModelAdmin):
@@ -52,6 +56,14 @@ class EventAdmin(CustomModelAdmin):
                     'allow_donations',
                 ]
             },
+        ),
+        (
+            'Horaro Schedule',
+            {
+                'classes': ['collapse'],
+                'fields': ['horaro_id',  'horaro_game_col', 'horaro_category_col',
+                            'horaro_runners_col'],
+            }
         ),
         (
             'Paypal',
@@ -354,6 +366,30 @@ class EventAdmin(CustomModelAdmin):
 
     email_report.short_description = 'Export email opt-in CSV'
 
+    def merge_horaro_schedule(self, request, queryset):
+        """Merge run schedule from Horaro API."""
+        if len(queryset) != 1:
+            self.message_user(request, "Please select only a single event for Horaro merge", level=messages.ERROR)
+            return
+
+        # Get content type for log entries.
+        ct = ContentType.objects.get_for_model(tracker.models.Event)
+
+        for event in queryset:
+            try:
+                with transaction.atomic():
+                    num_runs = horaro.merge_event_schedule(event)
+                    msg = 'Merged Horaro schedule for event {} - {} runs'.format(event, num_runs)
+                    admin.models.LogEntry.objects.log_action(user_id=request.user.id, content_type_id=ct.pk, object_id=event.pk,
+                                                   object_repr=str(event), action_flag=admin.models.CHANGE,
+                                                   change_message=msg)
+            except horaro.HoraroError as e:
+                self.message_user(request, "Can't merge Horaro schedule - {}".format(e), level=messages.ERROR)
+        else:
+            self.message_user(request, "%d runs merged for %s." % (num_runs, event.name), level=messages.SUCCESS)
+
+    merge_horaro_schedule.short_description = "Merge Horaro schedule for a single event (do this once every 24 hours)"
+
     actions = [
         donor_report,
         run_report,
@@ -362,6 +398,7 @@ class EventAdmin(CustomModelAdmin):
         donationbid_report,
         prize_report,
         email_report,
+        merge_horaro_schedule
     ]
 
 
