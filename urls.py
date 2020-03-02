@@ -14,6 +14,7 @@ from tracker import api_urls
 from tracker.feeds.runs_calendar import RunsCalendar
 from tracker.ui import urls as ui_urls
 from tracker.views import public, api, donateviews, user, auth
+from tracker.views import feedviews
 
 app_name = 'tracker'
 urlpatterns = [
@@ -113,4 +114,11 @@ urlpatterns = [
         name='password_change_done',
     ),
     path('websocket_test/', public.websocket_test),
+
+    # Data feed calls for tickers
+    path('feed/upcoming_runs/<slug:event>', feedviews.UpcomingRunsView.as_view(), name='feed_upcoming_runs'),
+    path('feed/upcoming_bids/<slug:event>', feedviews.UpcomingBidsView.as_view(), name='feed_upcoming_bids'),
+    path('feed/current_donations/<slug:event>', feedviews.CurrentDonationsView.as_view(), name='feed_current_donations'),
+    path('feed/donations/<slug:event>', feedviews.RecentDonationsView.as_view(), name='feed_recent_donations'),
+    path('feed/prizes/<slug:event>', feedviews.ActivePrizesView.as_view(), name='feed_prizes'),
 ]
