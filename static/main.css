@@ -1,7 +1,6 @@
 /* custom */
 
 .home-button{
-	width: 40px;
 	height: 40px;
 }
 
@@ -990,7 +989,7 @@ button,input,select,textarea{
     line-height:inherit
 }
 a{
-    color:#5fdaff;
+    color:#d33543;
     text-decoration:none
 }
 a:focus,a:hover{
@@ -1061,7 +1060,7 @@ hr{
     font-family:Righteous,futura-pt,museo-sans,"Helvetica Neue",Helvetica,Arial,sans-serif;
     font-weight:500;
     line-height:1.1;
-    color:#040044
+    color:#d33543
 }
 .h1 .small,.h1 small,.h2 .small,.h2 small,.h3 .small,.h3 small,.h4 .small,.h4 small,.h5 .small,.h5 small,.h6 .small,.h6 small,h1 .small,h1 small,h2 .small,h2 small,h3 .small,h3 small,h4 .small,h4 small,h5 .small,h5 small,h6 .small,h6 small{
     font-weight:400;
@@ -2678,8 +2677,8 @@ a.btn.disabled,fieldset[disabled] a.btn{
 }
 .btn-info{
     color:#fff;
-    background-color:#040044;
-    border-color:#040044
+    background-color:#d33543;
+    border-color:#d24a56
 }
 .btn-info.focus,.btn-info:focus{
     color:#fff;
@@ -2688,7 +2687,7 @@ a.btn.disabled,fieldset[disabled] a.btn{
 }
 .btn-info.active,.btn-info:active,.btn-info:hover,.open>.dropdown-toggle.btn-info{
     color:#fff;
-    background-color:#040044;
+    background-color:#bf3636;
     border-color:#1b6d85
 }
 .btn-info.active.focus,.btn-info.active:focus,.btn-info.active:hover,.btn-info:active.focus,.btn-info:active:focus,.btn-info:active:hover,.open>.dropdown-toggle.btn-info.focus,.open>.dropdown-toggle.btn-info:focus,.open>.dropdown-toggle.btn-info:hover{
@@ -7180,7 +7179,7 @@ a.stripe-button-el.disabled,fieldset[disabled] a.stripe-button-el{
     margin-bottom:24px
 }
 .medium-icon-blue .fa-stack-2x{
-    color:#040044
+    color:#d33543
 }
 .salty{
     background-image:url(/static/res/img/salty.png);
