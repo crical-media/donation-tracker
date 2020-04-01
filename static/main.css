@@ -7218,7 +7218,7 @@ a.stripe-button-el.disabled,fieldset[disabled] a.stripe-button-el{
 }
 .panel-max-height{
     max-height:300px;
-    overflow-y:scroll
+    overflow-y:auto
 }
 .withdraw{
     opacity:.65;
