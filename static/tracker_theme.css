@@ -4,7 +4,7 @@
 body {
     background-color: #dd9933;
     /*background-image: url("https://wp.bingothon.com/wp-content/uploads/2020/01/BACKGROUND-SUMMER-maybe.png");*/
-    background-image: url("https://wp.bingothon.com/wp-content/uploads/2020/03/backgroundbingothon2.jpg");
+    background-image: url("/static/images/backgroundbingothon-summer.jpg");
     background-position: left top;
     background-size: auto;
     background-repeat: no-repeat;
