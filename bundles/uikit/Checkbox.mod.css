@@ -10,11 +10,11 @@
   &:hover,
   &:focus,
   &:focus-within {
-    background-color: var(--background-tertiary);
+    background-color: var(--background-semitransparent);
   }
 
   &:active {
-    background-color: var(--background-secondary);
+    background-color: var(--background-semitransparent);
   }
 }
 

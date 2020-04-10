@@ -41,6 +41,7 @@
   flex: 0 0 min-content;
   display: block;
   padding-left: 8px;
+  color: var(--text-inverted);
 }
 
 .trailer {
