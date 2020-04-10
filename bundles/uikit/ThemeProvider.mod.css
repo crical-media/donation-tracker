@@ -1,6 +1,6 @@
 .themeMap {
   /* "brand" isn't really accurate here, but for now it's a placeholder to mean "not gray" */
-  --brand-primary: #000000;
+  --brand-primary: #fff;
   --background-primary: #fff;
   --background-secondary: #efe5e9;
   --background-tertiary: #f9f6f7;
@@ -9,9 +9,10 @@
   --header-normal: var(--brand-primary);
   --header-muted: #222222;
   --text-normal: var(--brand-primary);
-  --text-muted: #222222;
-  --text-link: #0076a3;
+  --text-muted: #fff;
+  --text-link: #009fa3;
   --text-inverted: #fff;
+  --text-input: #000000;
   --font-primary: museo-sans, 'Museo Sans', 'Museo Sans 500 Regular', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-secondary: Cubano, futura-pt, museo-sans, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 

@@ -4,7 +4,7 @@
   padding: 8px 12px;
   border: var(--border-primary);
   border-right: none;
-  background-color: var(--background-primary);
+  background-color: var(--background-secondary);
   font-family: var(--font-primary);
   font-weight: 500;
   font-size: 16px;
@@ -28,7 +28,7 @@
 
 .selectedItem {
   background-color: var(--brand-primary);
-  color: var(--text-inverted);
+  color: var(--text-input);
   z-index: 1;
 }
 

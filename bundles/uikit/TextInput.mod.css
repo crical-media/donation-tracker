@@ -21,13 +21,13 @@
   right: 0;
   padding: 2px 4px;
   margin-right: 4px;
-  color: var(--text-muted);
+  color: var(--text-input);
   font-size: 14px;
   pointer-events: none;
 }
 
 .invalidLength {
-  color: var(--text-normal);
+  color: var(--text-input);
 }
 
 .disabled,
