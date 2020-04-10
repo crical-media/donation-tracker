@@ -32,7 +32,7 @@
 /* Colors */
 .colorPrimary {
   --_button-primary: var(--brand-primary);
-  --_button-hover: var(--background-tertiary);
+  --_button-hover: var(--background-semitransparent);
   --_button-secondary: var(--text-inverted);
 }
 

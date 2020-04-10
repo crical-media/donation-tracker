@@ -1,6 +1,6 @@
 .container {
   padding: 16px;
-  background-color: var(--background-secondary);
+  background-color: var(--background-semitransparent);
 }
 
 .choiceLabel {

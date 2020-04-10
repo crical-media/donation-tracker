@@ -4,14 +4,15 @@
   padding: 8px 12px;
   border: var(--border-primary);
   border-right: none;
-  background-color: var(--background-secondary);
+  background-color: unset;
+  color: var(--brand-primary);
   font-family: var(--font-primary);
   font-weight: 500;
   font-size: 16px;
   line-height: 1;
 
   &:not(.selectedItem):hover {
-    background-color: var(--background-tertiary);
+    background-color: var(--background-semitransparent);
   }
 
   &:first-child {

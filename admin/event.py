@@ -375,6 +375,7 @@ class EventAdmin(CustomModelAdmin):
         # Get content type for log entries.
         ct = ContentType.objects.get_for_model(tracker.models.Event)
 
+        num_runs = 0
         for event in queryset:
             try:
                 with transaction.atomic():

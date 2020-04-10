@@ -30,15 +30,16 @@
   border-bottom: var(--border-secondary);
 
   &:hover {
-    background-color: var(--background-tertiary);
+    background-color: var(--background-semitransparent);
   }
 }
 
 .resultSelected {
   background-color: var(--background-secondary);
+  color: black;
 
   &:hover {
-    background-color: var(--background-secondary);
+    background-color: var(--background-semitransparent);
   }
 }
 
