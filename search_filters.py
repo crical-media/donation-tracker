@@ -191,6 +191,7 @@ _SpecificFields = {
         'provider': 'provider__icontains',
         'handler': 'handler',
         'creator': 'creator',
+        'state': 'state',
     },
     'prizewinner': {
         'event': 'prize__event',
