@@ -1,4 +1,4 @@
-Django==2.1.11
+Django==2.2.24
 django-ajax-selects==1.7.1
 django-betterforms==1.2
 django-bootstrap3==11.0.0
