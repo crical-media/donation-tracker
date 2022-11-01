@@ -81,15 +81,24 @@ class RecentDonationsView(View):
             'transactionstate':'COMPLETED',
         }
         # get all completed donations, get the last 20 recieved ones
-        donations = filters.run_model_query('donation', params).select_related('donor').order_by('-timereceived')[:20]
+        donations = filters.run_model_query('donation', params).select_related('donor').prefetch_related('bids').order_by('-timereceived')[:20]
         results = []
         for donation in donations:
-            results.append({
+            result = {
                 'id': donation.id,
                 'donor': donation.donor.visible_name(),
                 'comment': donation.comment if donation.commentstate == 'APPROVED' else '',
                 'amount': float(donation.amount),
-            })
+                'bids': []
+            }
+            for bid in donation.bids.filter(bid__state__in=['OPENED','CLOSED']):
+                result['bids'].append({
+                    'name': bid.bid.name,
+                    'parent': bid.bid.parent.name if bid.bid.parent else '',
+                    'speedrun': bid.speedrun.name if bid.speedrun else '',
+                    'amount': float(bid.amount)
+                })
+            results.append(result)
         return JsonResponse({'results':results})
 
 
