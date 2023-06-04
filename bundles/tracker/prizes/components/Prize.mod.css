@@ -77,9 +77,9 @@
 }
 
 .details {
-  padding: 16px;
+  /* padding: 16px; */
   margin-bottom: 16px;
-  background-color: #273456;
+  /* background-color: #273456; */
 }
 
 .detailValue {

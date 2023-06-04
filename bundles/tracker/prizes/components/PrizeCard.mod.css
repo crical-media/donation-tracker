@@ -5,13 +5,13 @@
   position: relative;
   height: 100%;
   border-radius: 4px;
-  background-color: #273456;
+  background-color: #d74723;
   overflow: hidden;
 
   &:hover,
   &:focus,
   &:focus-within {
-    background-color: #24304e;
+    background-color: #d03f1a;
   }
 }
 
@@ -21,7 +21,7 @@
   height: 0;
   padding-top: 56.25%;
   content: '';
-  background-color: #24304e;
+  background-color: #d03f1a;
 }
 
 .coverImage {
