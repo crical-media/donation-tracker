@@ -1,4 +1,5 @@
 import collections
+from collections.abc import Iterable
 import json
 
 import django.core.serializers as serializers
@@ -527,7 +528,7 @@ def get_admin(Model):
 
 def flatten(l):
     for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, str):
+        if isinstance(el, Iterable) and not isinstance(el, str):
             for sub in flatten(el):
                 yield sub
         else:
