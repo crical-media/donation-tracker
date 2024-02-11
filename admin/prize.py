@@ -1,9 +1,9 @@
 import json
 
 from django.conf import settings
-from django.conf.urls import url
+from django.urls import re_path
 from django.contrib import messages
-from django.contrib.admin import register
+from django.contrib.admin import register, ModelAdmin
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect, Http404, HttpResponse
@@ -21,23 +21,22 @@ from tracker import (
     models,
 )
 from .filters import PrizeListFilter
-from .forms import PrizeWinnerForm, DonorPrizeEntryForm, PrizeForm, PrizeKeyImportForm
 from .inlines import PrizeWinnerInline
 from .util import (
-    CustomModelAdmin,
+    latest_event_id,
     mass_assign_action,
     api_urls,
 )
 
 
 @register(models.PrizeWinner)
-class PrizeWinnerAdmin(CustomModelAdmin):
-    form = PrizeWinnerForm
+class PrizeWinnerAdmin(ModelAdmin):
     search_fields = ['prize__name', 'winner__email']
     list_display = ['__str__', 'prize', 'winner']
     readonly_fields = [
         'winner_email',
     ]
+    autocomplete_fields = ('prize', 'winner')
     fieldsets = [
         (
             None,
@@ -83,8 +82,7 @@ class PrizeWinnerAdmin(CustomModelAdmin):
 
 
 @register(models.DonorPrizeEntry)
-class DonorPrizeEntryAdmin(CustomModelAdmin):
-    form = DonorPrizeEntryForm
+class DonorPrizeEntryAdmin(ModelAdmin):
     model = models.DonorPrizeEntry
     search_fields = [
         'prize__name',
@@ -95,6 +93,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
     ]
     list_display = ['prize', 'donor', 'weight']
     list_filter = ['prize__event', 'prize', 'donor']
+    autocomplete_fields = ('donor', 'prize')
     fieldsets = [
         (None, {'fields': ['donor', 'prize', 'weight']}),
     ]
@@ -110,8 +109,7 @@ class DonorPrizeEntryAdmin(CustomModelAdmin):
 
 
 @register(models.Prize)
-class PrizeAdmin(CustomModelAdmin):
-    form = PrizeForm
+class PrizeAdmin(ModelAdmin):
     list_display = (
         'name',
         'category',
@@ -130,6 +128,7 @@ class PrizeAdmin(CustomModelAdmin):
         'unclaimed',
     )
     list_filter = ('event', 'category', 'state', PrizeListFilter)
+    autocomplete_fields = ('event', 'startrun', 'endrun', 'handler', 'allowed_prize_countries', 'disallowed_prize_regions')
     fieldsets = [
         (
             None,
@@ -616,51 +615,56 @@ class PrizeAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(PrizeAdmin, self).get_urls() + [
-            url(
+            re_path(
                 'automail_prize_contributors',
                 self.admin_site.admin_view(self.automail_prize_contributors),
                 name='automail_prize_contributors',
             ),
-            url(
+            re_path(
                 'draw_prize_winners',
                 self.admin_site.admin_view(self.draw_prize_winners),
                 name='draw_prize_winners',
             ),
-            url(
+            re_path(
                 r'prize_key_import/(?P<prize>\d+)',
                 self.admin_site.admin_view(self.prize_key_import),
                 name='tracker_prize_key_import',
             ),
-            url(
+            re_path(
                 'automail_prize_winners',
                 self.admin_site.admin_view(self.automail_prize_winners),
                 name='automail_prize_winners',
             ),
-            url(
+            re_path(
                 r'preview_prize_winner_mail/(?P<prize_winner>\d+)',
                 self.admin_site.admin_view(self.preview_prize_winner_mail),
                 name='preview_prize_winner_mail',
             ),
-            url(
+            re_path(
                 'automail_prize_accept_notifications',
                 self.admin_site.admin_view(self.automail_prize_accept_notifications),
                 name='automail_prize_accept_notifications',
             ),
-            url(
+            re_path(
                 'automail_prize_shipping_notifications',
                 self.admin_site.admin_view(self.automail_prize_shipping_notifications),
                 name='automail_prize_shipping_notifications',
             ),
-            url(
+            re_path(
                 'process_prize_submissions',
                 self.admin_site.admin_view(self.process_prize_submissions),
                 name='process_prize_submissions',
             ),
         ]
+    
+    def get_changeform_initial_data(self, request):
+        return super().get_changeform_initial_data(request) | {
+            "event": latest_event_id
+        }
 
 
 @register(models.PrizeKey)
-class PrizeKeyAdmin(CustomModelAdmin):
+class PrizeKeyAdmin(ModelAdmin):
     readonly_fields = (
         'prize',
         'prize_winner',
