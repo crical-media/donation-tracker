@@ -57,10 +57,10 @@ def index(request, event=None):
     agg = Donation.objects.filter(
         transactionstate='COMPLETED', testdonation=False, **eventParams
     ).aggregate(
-        amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
         count=Count('amount'),
         max=Cast(Coalesce(Max('amount'), 0), output_field=FloatField()),
         avg=Cast(Coalesce(Avg('amount'), 0), output_field=FloatField()),
+        amount=Cast(Coalesce(Sum('amount'), 0), output_field=FloatField()),
     )
     agg['target'] = float(event.targetamount)
     count = {
@@ -319,10 +319,10 @@ def donationindex(request, event=None):
     donations = views_common.fixorder(donations, orderdict, sort, order)
 
     agg = donations.aggregate(
-        amount=Sum('amount'),
         count=Count('amount'),
         max=Max('amount'),
         avg=Avg('amount'),
+        amount=Sum('amount'),
     )
     donations = donations.select_related('donor')
     pages = paginator.Paginator(donations, 50)

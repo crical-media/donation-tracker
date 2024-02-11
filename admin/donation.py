@@ -1,8 +1,8 @@
 import json
 from datetime import datetime, timedelta
 
-from django.conf.urls import url
-from django.contrib.admin import register
+from django.urls import re_path
+from django.contrib.admin import register, ModelAdmin
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -11,21 +11,19 @@ from django.utils.safestring import mark_safe
 
 from tracker import search_filters, forms, logutil, viewutil, models
 from .filters import DonationListFilter
-from .forms import DonationForm, DonorForm
 from .inlines import DonationBidInline, DonationInline
 from .util import (
-    CustomModelAdmin,
+    latest_event_id,
     mass_assign_action,
     api_urls,
 )
 
 
 @register(models.Donation)
-class DonationAdmin(CustomModelAdmin):
+class DonationAdmin(ModelAdmin):
     class Media:
         css = {'all': ('admin/donation.css',)}
 
-    form = DonationForm
     list_display = (
         'id',
         'visible_donor_name',
@@ -40,8 +38,10 @@ class DonationAdmin(CustomModelAdmin):
         'readstate',
         'commentstate',
     )
+    autocomplete_fields = ('donor', 'event')
     list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate')
     search_fields_base = ('donor__alias', 'amount', 'comment', 'modcomment')
+    search_fields = search_fields_base
     list_filter = (
         'event',
         'transactionstate',
@@ -176,7 +176,7 @@ class DonationAdmin(CustomModelAdmin):
             search_fields += ['donor__email', 'donor__paypalemail']
         if request.user.has_perm('tracker.view_usernames'):
             search_fields += ['donor__firstname', 'donor__lastname']
-        return search_fields
+        return tuple(search_fields)
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)
@@ -191,12 +191,12 @@ class DonationAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(DonationAdmin, self).get_urls() + [
-            url(
+            re_path(
                 'process_donations',
                 self.admin_site.admin_view(self.process_donations),
                 name='process_donations',
             ),
-            url(
+            re_path(
                 'read_donations',
                 self.admin_site.admin_view(self.read_donations),
                 name='read_donations',
@@ -250,15 +250,19 @@ class DonationAdmin(CustomModelAdmin):
         ):
             del actions['delete_selected']
         return actions
-
+    
+    def get_changeform_initial_data(self, request):
+        return super().get_changeform_initial_data(request) | {
+            "event": latest_event_id
+        }
 
 @register(models.Donor)
-class DonorAdmin(CustomModelAdmin):
-    form = DonorForm
+class DonorAdmin(ModelAdmin):
     search_fields = ('email', 'paypalemail', 'alias', 'firstname', 'lastname')
     list_filter = ('donation__event', 'visibility')
     readonly_fields = ('visible_name',)
     list_display = ('__str__', 'visible_name', 'alias', 'visibility')
+    autocomplete_fields = ('addresscountry', 'user')
     fieldsets = [
         (
             None,
@@ -299,7 +303,7 @@ class DonorAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(DonorAdmin, self).get_urls() + [
-            url(
+            re_path(
                 'merge_donors',
                 self.admin_site.admin_view(self.merge_donors_view),
                 name='merge_donors',

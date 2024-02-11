@@ -3,13 +3,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from tracker import models
-from .forms import (
-    DonationBidForm,
-    DonationForm,
-    PrizeWinnerForm,
-    DonorPrizeEntryForm,
-    PrizeForm,
-)
 
 
 class CustomStackedInline(admin.StackedInline):
@@ -28,7 +21,6 @@ class CustomStackedInline(admin.StackedInline):
 
 
 class DonationBidInline(CustomStackedInline):
-    form = DonationBidForm
     model = models.DonationBid
     extra = 0
     max_num = 100
@@ -75,7 +67,6 @@ class BidDependentsInline(BidInline):
 
 
 class DonationInline(CustomStackedInline):
-    form = DonationForm
     model = models.Donation
     extra = 0
     readonly_fields = ('edit_link',)
@@ -88,7 +79,6 @@ class EventBidInline(BidInline):
 
 
 class PrizeWinnerInline(CustomStackedInline):
-    form = PrizeWinnerForm
     model = models.PrizeWinner
     readonly_fields = ['winner_email', 'edit_link']
 
@@ -99,7 +89,6 @@ class PrizeWinnerInline(CustomStackedInline):
 
 
 class DonorPrizeEntryInline(CustomStackedInline):
-    form = DonorPrizeEntryForm
     model = models.DonorPrizeEntry
     readonly_fields = ['edit_link']
     extra = 0
@@ -107,7 +96,6 @@ class DonorPrizeEntryInline(CustomStackedInline):
 
 class PrizeInline(CustomStackedInline):
     model = models.Prize
-    form = PrizeForm
     fk_name = 'endrun'
     extra = 0
     fields = [

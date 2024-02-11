@@ -3,7 +3,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib import admin
-from django.conf.urls import url
+from django.urls import re_path
 from django.contrib import messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -13,30 +13,23 @@ from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
+from tracker.admin.util import latest_event_id
 
 import tracker.models.fields
 from tracker import models, search_filters, forms, viewutil
 from .filters import RunListFilter
-from .forms import (
-    EventForm,
-    PostbackURLForm,
-    RunnerAdminForm,
-    SpeedRunAdminForm,
-    StartRunForm,
-)
 from .inlines import BidInline, EventBidInline
-from .util import CustomModelAdmin
 
 import tracker.horaro as horaro
 
 @register(models.Event)
-class EventAdmin(CustomModelAdmin):
-    form = EventForm
+class EventAdmin(admin.ModelAdmin):
     search_fields = ('short', 'name')
     inlines = [EventBidInline]
     list_display = ['name', 'locked', 'allow_donations']
     list_editable = ['locked', 'allow_donations']
     readonly_fields = ['scheduleid']
+    autocomplete_fields = ('allowed_prize_countries', 'disallowed_prize_regions', 'prizecoordinator')
     fieldsets = [
         (
             None,
@@ -104,7 +97,7 @@ class EventAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(EventAdmin, self).get_urls() + [
-            url(
+            re_path(
                 'select_event',
                 self.admin_site.admin_view(self.select_event),
                 name='select_event',
@@ -404,11 +397,11 @@ class EventAdmin(CustomModelAdmin):
 
 
 @register(models.PostbackURL)
-class PostbackURLAdmin(CustomModelAdmin):
-    form = PostbackURLForm
+class PostbackURLAdmin(admin.ModelAdmin):
     search_fields = ('url',)
     list_filter = ('event',)
     list_display = ('url', 'event')
+    autocomplete_fields = ('event',)
     fieldsets = [(None, {'fields': ['event', 'url']})]
 
     def get_queryset(self, request):
@@ -417,11 +410,14 @@ class PostbackURLAdmin(CustomModelAdmin):
             return models.PostbackURL.objects.filter(event=event)
         else:
             return models.PostbackURL.objects.all()
-
+    
+    def get_changeform_initial_data(self, request):
+        return super().get_changeform_initial_data(request) | {
+            "event": latest_event_id
+        }
 
 @register(models.Runner)
-class RunnerAdmin(CustomModelAdmin):
-    form = RunnerAdminForm
+class RunnerAdmin(admin.ModelAdmin):
     search_fields = [
         'name',
         'stream',
@@ -443,6 +439,7 @@ class RunnerAdmin(CustomModelAdmin):
         'pronouns',
         'donor',
     )
+    autocomplete_fields = ('donor',)
     fieldsets = [
         (
             None,
@@ -462,8 +459,7 @@ class RunnerAdmin(CustomModelAdmin):
 
 
 @register(models.SpeedRun)
-class SpeedRunAdmin(CustomModelAdmin):
-    form = SpeedRunAdminForm
+class SpeedRunAdmin(admin.ModelAdmin):
     search_fields = [
         'name',
         'description',
@@ -480,6 +476,7 @@ class SpeedRunAdmin(CustomModelAdmin):
         'run_time',
         'setup_time',
     )
+    autocomplete_fields = ('event', 'runners')
     fieldsets = [
         (
             None,
@@ -581,9 +578,14 @@ class SpeedRunAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(SpeedRunAdmin, self).get_urls() + [
-            url(
+            re_path(
                 r'start_run/(?P<run>\d+)',
                 self.admin_site.admin_view(self.start_run_view),
                 name='start_run',
             ),
         ]
+    
+    def get_changeform_initial_data(self, request):
+        return super().get_changeform_initial_data(request) | {
+            "event": latest_event_id
+        }

@@ -1,4 +1,3 @@
-from ajax_select.admin import AjaxSelectAdmin
 from django.urls import reverse
 
 
@@ -13,10 +12,6 @@ def latest_event_id():
         return Event.objects.latest().id
     except Event.DoesNotExist:
         return 0
-
-
-class CustomModelAdmin(AjaxSelectAdmin):
-    pass
 
 
 def ReadOffsetTokenPair(value):
