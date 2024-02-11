@@ -1,8 +1,8 @@
 import json
 
-from django.conf.urls import url
+from django.urls import re_path
 from django.contrib import messages
-from django.contrib.admin import register
+from django.contrib import admin
 from django.contrib.auth.decorators import permission_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
@@ -11,17 +11,15 @@ from django.utils.safestring import mark_safe
 
 from tracker import search_filters, forms, logutil, models, viewutil
 from .filters import BidListFilter, BidParentFilter
-from .forms import DonationBidForm, BidForm
 from .inlines import BidOptionInline, BidDependentsInline
 from .util import (
-    CustomModelAdmin,
     api_urls,
+    latest_event_id,
 )
 
 
-@register(models.Bid)
-class BidAdmin(CustomModelAdmin):
-    form = BidForm
+@admin.register(models.Bid)
+class BidAdmin(admin.ModelAdmin):
     list_display = (
         '__str__',
         'speedrun',
@@ -48,6 +46,7 @@ class BidAdmin(CustomModelAdmin):
         BidParentFilter,
         BidListFilter,
     )
+    autocomplete_fields = ('event', 'speedrun', 'biddependency')
     readonly_fields = ('parent', 'parent_', 'total')
     fieldsets = [
         (
@@ -226,12 +225,12 @@ class BidAdmin(CustomModelAdmin):
 
     def get_urls(self):
         return super(BidAdmin, self).get_urls() + [
-            url(
+            re_path(
                 'merge_bids',
                 self.admin_site.admin_view(self.merge_bids_view),
                 name='merge_bids',
             ),
-            url(
+            re_path(
                 'process_pending_bids',
                 self.admin_site.admin_view(self.process_pending_bids),
                 name='process_pending_bids',
@@ -246,12 +245,18 @@ class BidAdmin(CustomModelAdmin):
         ):
             del actions['delete_selected']
         return actions
+    
+    def get_changeform_initial_data(self, request):
+        return super().get_changeform_initial_data(request) | {
+            "event": latest_event_id
+        }
 
 
-@register(models.DonationBid)
-class DonationBidAdmin(CustomModelAdmin):
-    form = DonationBidForm
+@admin.register(models.DonationBid)
+class DonationBidAdmin(admin.ModelAdmin):
     list_display = ('bid', 'donation', 'amount')
+
+    autocomplete_fields = ('bid', 'donation')
 
     def get_queryset(self, request):
         event = viewutil.get_selected_event(request)

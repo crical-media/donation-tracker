@@ -4,13 +4,10 @@ from django.utils.safestring import mark_safe
 
 from tracker import models
 from .filters import AdminActionLogEntryFlagFilter
-from .forms import LogAdminForm
-from .util import CustomModelAdmin
 
 
 @register(models.Log)
-class LogAdmin(CustomModelAdmin):
-    form = LogAdminForm
+class LogAdmin(admin.ModelAdmin):
     search_fields = ['category', 'message']
     date_hierarchy = 'timestamp'
     list_filter = [('timestamp', admin.DateFieldListFilter), 'event', 'user']
@@ -34,7 +31,7 @@ class LogAdmin(CustomModelAdmin):
 
 
 @register(admin_models.LogEntry)
-class AdminActionLogEntryAdmin(CustomModelAdmin):
+class AdminActionLogEntryAdmin(admin.ModelAdmin):
     search_fields = ['object_repr', 'change_message']
     date_hierarchy = 'action_time'
     list_filter = [

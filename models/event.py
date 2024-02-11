@@ -253,7 +253,7 @@ class Event(models.Model):
                 self.datetime.tzinfo is None
                 or self.datetime.tzinfo.utcoffset(self.datetime) is None
             ):
-                self.datetime = self.timezone.localize(self.datetime)
+                self.datetime = self.datetime.astimezone(self.timezone)
         super(Event, self).save(*args, **kwargs)
 
         # When an event's datetime moves later than the starttime of the first
