@@ -234,8 +234,6 @@ class Bid(mptt.models.MPTTModel):
             self.goal = None
         elif self.goal <= Decimal('0.0'):
             raise ValidationError('Goal should be a positive value')
-        if self.istarget and self.options.count() != 0:
-            raise ValidationError('Targets cannot have children')
         if self.parent and self.parent.istarget:
             raise ValidationError('Cannot set that parent, parent is a target')
         if self.istarget and self.allowuseroptions:
@@ -252,10 +250,16 @@ class Bid(mptt.models.MPTTModel):
             raise ValidationError(
                 'Cannot have a bid under the same event/run/parent with the same name'
             )
-        # TODO: move this to save/a post_save signal?
+
+    def save(self):
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
+        # temporary, will be set properly in upate_total
+        self.count = 0
+        super().save()
         self.update_total()
+        if self.istarget and self.options.count() != 0:
+            raise ValidationError('Targets cannot have children')
 
     @property
     def has_options(self):
@@ -323,7 +327,8 @@ class Bid(mptt.models.MPTTModel):
 def BidTotalUpdate(sender, instance, raw, **kwargs):
     if raw:
         return
-    instance.update_total()
+    if instance.id:
+        instance.update_total()
 
 
 @receiver(signals.post_save, sender=Bid)
