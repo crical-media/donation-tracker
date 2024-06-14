@@ -251,12 +251,12 @@ class Bid(mptt.models.MPTTModel):
                 'Cannot have a bid under the same event/run/parent with the same name'
             )
 
-    def save(self):
+    def save(self, *args, **kwargs):
         if self.state in ['OPENED', 'CLOSED'] and not self.revealedtime:
             self.revealedtime = datetime.utcnow().replace(tzinfo=pytz.utc)
         # temporary, will be set properly in upate_total
         self.count = 0
-        super().save()
+        super().save(*args, **kwargs)
         self.update_total()
         if self.istarget and self.options.count() != 0:
             raise ValidationError('Targets cannot have children')
