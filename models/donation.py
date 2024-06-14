@@ -5,7 +5,7 @@ from functools import reduce
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Count, Sum, Max, Avg
+from django.db.models import Count, DecimalField, IntegerField, Sum, Max, Avg
 from django.db.models import signals
 from django.db.models.functions import Coalesce
 from django.dispatch import receiver
@@ -453,10 +453,10 @@ class DonorCache(models.Model):
         if self.event:
             aggregate = aggregate.filter(event=self.event)
         aggregate = aggregate.aggregate(
-            total=Coalesce(Sum('amount'), 0.0),
+            total=Coalesce(Sum('amount'), 0.0, output_field=DecimalField()),
             count=Coalesce(Count('amount'), 0),
-            max=Coalesce(Max('amount'), 0.0),
-            avg=Coalesce(Avg('amount'), 0.0),
+            max=Coalesce(Max('amount'), 0.0, output_field=DecimalField()),
+            avg=Coalesce(Avg('amount'), 0.0, output_field=DecimalField()),
         )
         self.donation_total = aggregate['total']
         self.donation_count = aggregate['count']
