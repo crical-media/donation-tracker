@@ -27,6 +27,7 @@ from django.db.models import (
     DecimalField,
     IntegerField,
 )
+from django.db.models.expressions import Decimal
 from django.db.models.functions import Coalesce
 from django.db.utils import IntegrityError
 from django.http import HttpResponse, QueryDict
@@ -215,10 +216,10 @@ EVENT_DONATION_AGGREGATE_FILTER = Case(
 
 annotations = {
     'event': {
-        'amount': Coalesce(Sum(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'amount': Coalesce(Sum(EVENT_DONATION_AGGREGATE_FILTER), Decimal(0)),
         'count': Count(EVENT_DONATION_AGGREGATE_FILTER),
-        'max': Coalesce(Max(EVENT_DONATION_AGGREGATE_FILTER), 0),
-        'avg': Coalesce(Avg(EVENT_DONATION_AGGREGATE_FILTER), 0),
+        'max': Coalesce(Max(EVENT_DONATION_AGGREGATE_FILTER), Decimal(0)),
+        'avg': Coalesce(Avg(EVENT_DONATION_AGGREGATE_FILTER), Decimal(0)),
     },
     'prize': {
         'numwinners': Count(
