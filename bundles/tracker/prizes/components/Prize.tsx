@@ -1,20 +1,24 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import TimeUtils, { DateTime } from '../../../public/util/TimeUtils';
-import Anchor from '../../../uikit/Anchor';
-import Button from '../../../uikit/Button';
-import Container from '../../../uikit/Container';
-import Header from '../../../uikit/Header';
-import LoadingDots from '../../../uikit/LoadingDots';
-import Markdown from '../../../uikit/Markdown';
-import Text from '../../../uikit/Text';
-import useDispatch from '../../hooks/useDispatch';
-import * as EventActions from '../../events/EventActions';
-import * as EventStore from '../../events/EventStore';
-import RouterUtils, { Routes } from '../../router/RouterUtils';
-import { StoreState } from '../../Store';
+import { useConstants } from '@common/Constants';
+import * as CurrencyUtils from '@public/util/currency';
+import TimeUtils, { DateTime } from '@public/util/TimeUtils';
+import Anchor from '@uikit/Anchor';
+import Button from '@uikit/Button';
+import Container from '@uikit/Container';
+import Header from '@uikit/Header';
+import LoadingDots from '@uikit/LoadingDots';
+import Markdown from '@uikit/Markdown';
+import Text from '@uikit/Text';
+
+import * as EventActions from '@tracker/events/EventActions';
+import * as EventStore from '@tracker/events/EventStore';
+import useDispatch from '@tracker/hooks/useDispatch';
+import RouterUtils, { Routes as TrackerRoutes } from '@tracker/router/RouterUtils';
+import { StoreState } from '@tracker/Store';
+
 import * as PrizeActions from '../PrizeActions';
 import * as PrizeStore from '../PrizeStore';
 import * as PrizeTypes from '../PrizeTypes';
@@ -80,6 +84,7 @@ type PrizeProps = {
 };
 
 const Prize = (props: PrizeProps) => {
+  const { SWEEPSTAKES_URL } = useConstants();
   const { prizeId } = props;
   const now = TimeUtils.getNowLocal();
 
@@ -97,23 +102,31 @@ const Prize = (props: PrizeProps) => {
     };
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     dispatch(PrizeActions.fetchPrizes({ id: prizeId }));
-  }, [dispatch]);
+  }, [dispatch, prizeId]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (event == null && eventId != null) {
       dispatch(EventActions.fetchEvents({ id: eventId }));
     }
   }, [dispatch, event, eventId]);
 
-  const handleDonate = React.useCallback(() => {
+  const navigate = useNavigate();
+
+  const handleDonate = useCallback(() => {
     if (prize == null) return;
-    RouterUtils.navigateTo(Routes.EVENT_DONATE(prize.eventId), {
+    RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_DONATE(prize.eventId), {
       hash: prize.minimumBid != null ? prize.minimumBid.toFixed(2) : '',
       forceReload: true,
     });
-  }, [prize]);
+  }, [navigate, prize]);
+
+  const handleBack = useCallback(() => {
+    if (prize) {
+      RouterUtils.navigateTo(navigate, TrackerRoutes.EVENT_PRIZES(prize.eventId));
+    }
+  }, [navigate, prize]);
 
   if (prize == null)
     return (
@@ -126,10 +139,6 @@ const Prize = (props: PrizeProps) => {
 
   const prizeDetails = getPrizeDetails(prize);
   const prizeImage = prizeError ? null : PrizeUtils.getPrimaryImage(prize);
-
-  const handleBack = () => {
-    RouterUtils.navigateTo(Routes.EVENT_PRIZES(prize.eventId));
-  };
 
   return (
     <Container size={Container.Sizes.WIDE}>
@@ -200,11 +209,11 @@ const Prize = (props: PrizeProps) => {
         </div>
       </div>
 
-      {window.SWEEPSTAKES_URL && (
+      {SWEEPSTAKES_URL && (
         <div className={styles.disclaimers}>
           <Text>
-            No donation necessary for a chance to win. See{' '}
-            <Anchor href={window.SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for details and instructions.
+            No donation necessary for a chance to win. See <Anchor href={SWEEPSTAKES_URL}>sweepstakes rules</Anchor> for
+            details and instructions.
           </Text>
         </div>
       )}

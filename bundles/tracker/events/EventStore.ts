@@ -1,7 +1,7 @@
-import { createSelector } from 'reselect';
 import createCachedSelector from 're-reselect';
+import { createSelector } from 'reselect';
 
-import { StoreState } from '../Store';
+import { StoreState } from '@tracker/Store';
 
 const getEventsState = (state: StoreState) => state.events;
 const getEventId = (state: StoreState, { eventId }: { eventId: string }) => {
@@ -14,15 +14,11 @@ const getEventId = (state: StoreState, { eventId }: { eventId: string }) => {
 };
 export const getSelectedEventId = (state: StoreState) => state.events.selectedEventId;
 
-export const getSelectedEvent = createSelector(
-  [getEventsState, getSelectedEventId],
-  (state, eventId) => (eventId != null ? state.events[eventId] : undefined),
+export const getSelectedEvent = createSelector([getEventsState, getSelectedEventId], (state, eventId) =>
+  eventId != null ? state.events[eventId] : undefined,
 );
 
-export const getEvents = createSelector(
-  [getEventsState],
-  state => Object.values(state.events),
-);
+export const getEvents = createSelector([getEventsState], state => Object.values(state.events));
 
 export const getEvent = createCachedSelector([getEventsState, getEventId], (state, eventId) =>
   eventId != null ? state.events[eventId] : undefined,

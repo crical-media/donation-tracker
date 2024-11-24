@@ -1,0 +1,146 @@
+{% extends "tracker/index.html" %}
+{% load donation_tags %}
+{% load i18n %}
+
+
+{% block title %}{% trans "Bid Detail" %} &mdash; {{ event.name }}{% endblock %}
+
+{% block content %}
+    <h2>
+        {% if bid.parent %}
+          {{ bid.parent }}
+          &mdash;
+        {% endif %}
+        {{ bid.name }}
+        &mdash;
+        {% if bid.speedrun %}
+            ({% trans "Run" %})
+            {{ bid.speedrun }}
+        {% else %}
+            ({% trans "Event" %})
+            {{ bid.event }}
+        {% endif %}
+        <br>
+        <small>
+            {% trans "Total" %}:
+            {{ bid.total|money }}
+            {% if bid.goal %}
+            <br>
+                {% trans "Goal" %}:
+                {{ bid.goal|money }}
+            {% endif %}
+            {% if bid.chain %}
+            <br>
+                {% trans "Stretch Goal" %}:
+                {{ bid.full_chain|money }}
+            {% endif %}
+        </small>
+    </h2>
+
+    {% if bid.ancestors %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th align="center" colspan="5">
+                    <b>
+                        {% trans "Owners" %}
+                    </b>
+                </th>
+            </tr>
+            {% for ancestor in bid.ancestors %}
+                <tr class="small">
+                    <td colspan="5">
+                        <a href="{% url 'tracker:bid' pk=ancestor.pk %}">
+                            {{ ancestor.name | title }}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </thead>
+        </table>
+    {% endif %}
+
+    {% if bid.description|length > 0 %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th align="center" colspan="5">
+                    <b>
+                        {% trans "Description" %}
+                    </b>
+                </th>
+            </tr>
+            <tr class="small">
+                <td colspan="5">
+                    {{ bid.description|forumfilter }}
+                </td>
+            </tr>
+            </thead>
+        </table>
+    {% endif %}
+
+    {% if bid.goal %}
+      <div style="display: flex; width: 80%; height: 40px; border: 1px solid black;">
+        <div style="background-color: #00aeef; flex-grow: {% if bid.chain %}{{ bid.chain_total }}{% else %}{{ bid.total }}{% endif %}"></div>
+        <div style="background-color: gray; flex-grow: {{ bid.remaining }}"></div>
+        {% for step in bid.steps %}
+          <div style="background-color: #00aeef; flex-grow: {{ step.chain_total }}; border-left: 1px solid black;"></div>
+          <div style="background-color: gray; flex-grow: {{ step.remaining }}; {% if step.remaining > 0 and step.total > 0 %}border-left: 1px dotted black;{% endif %}"></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if bid.chain %}
+      <h3>Stretch Goals</h3>
+      {% include 'tracker/partials/chaintable.html' with bid=bid steps=bid.steps only %}
+    {% endif %}
+
+    {% if bid.istarget %}
+        <table class="table table-condensed table-striped small">
+            <thead>
+            <tr>
+                <th>
+                    {% trans "Name" %}{% sort "name" %}
+                </th>
+                <th>
+                    {% trans "Time Received" %}{% sort "time" %}
+                </th>
+                <th>
+                    {% trans "Amount" %}{% sort "amount" %}
+                </th>
+            </tr>
+            </thead>
+            {% for donation in donations %}
+                <tr class="small">
+                    <td>
+                        {{ donation.donation.visible_donor_name }}
+{#                        {% include "tracker/partials/donor_link.html" with donor=donation.donor_cache only %}#}
+                    </td>
+                    <td class="datetime">
+                        {{ donation.timereceived|date:"c" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'tracker:donation' pk=donation.donation_id %}">{{ donation.amount|money }}</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="small">
+                    <td colspan="3">
+                        No bids for this option yet!
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        {% include "tracker/partials/pagefooter.html" %}
+    {% elif not bid.chain %}
+        {% include 'tracker/partials/optionstable.html' with hiderun=1 bid=bid only %}
+    {% endif %}
+
+    <p class="text-center">
+        <a href="{% url 'tracker:bidindex' event=event.short %}" class="btn btn-default">
+            {% trans "Back to Bid Index" %}
+        </a>
+    </p>
+    {% include "tracker/partials/navfooter.html" %}
+{% endblock %}

@@ -1,12 +1,10 @@
-import * as React from 'react';
-import { createStore, render } from '../../testing/test-utils';
+import TimeUtils, { DateTime } from '@public/util/TimeUtils';
 
-import TimeUtils, { DateTime } from '../../../public/util/TimeUtils';
-import * as EventDetailsActions from '../../event_details/EventDetailsActions';
-import { Run } from '../../runs/RunTypes';
+import { Run } from '@tracker/runs/RunTypes';
+
 import getPrizeRelativeAvailability, {
-  EXACT_TIME_RELATIVE_LIMIT,
   ALLOWED_ESTIMATED_TIMES,
+  EXACT_TIME_RELATIVE_LIMIT,
 } from '../getPrizeRelativeAvailability';
 import { Prize } from '../PrizeTypes';
 
@@ -220,7 +218,7 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Opens when ${run1.name} starts`);
+      expect(availability).toEqual(`Opens when ${run1.name} \u2014 ${run1.category} starts`);
     });
 
     it('shows only ending run name when estimated end is far', () => {
@@ -235,7 +233,7 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Closes when ${run1.name} ends`);
+      expect(availability).toEqual(`Closes when ${run1.name} \u2014 ${run1.category} ends`);
     });
 
     it('shows run name and time when estimated start is near', () => {
@@ -249,7 +247,9 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Opens when ${run1.name} starts, ${largestAllowedEstimate.display}`);
+      expect(availability).toEqual(
+        `Opens when ${run1.name} \u2014 ${run1.category} starts, ${largestAllowedEstimate.display}`,
+      );
     });
 
     it('shows run name and time when estimated end is near', () => {
@@ -264,7 +264,9 @@ describe('getPrizeRelativeAvailability', () => {
       };
 
       const availability = getPrizeRelativeAvailability(prize, now);
-      expect(availability).toEqual(`Closes when ${run1.name} ends, ${largestAllowedEstimate.display}`);
+      expect(availability).toEqual(
+        `Closes when ${run1.name} \u2014 ${run1.category} ends, ${largestAllowedEstimate.display}`,
+      );
     });
   });
 });

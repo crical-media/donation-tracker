@@ -1,17 +1,20 @@
 import * as React from 'react';
-import { useSelector } from 'react-redux';
 import classNames from 'classnames';
+import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import { StoreState } from '../../Store';
-import Button from '../../../uikit/Button';
-import Checkbox from '../../../uikit/Checkbox';
-import CurrencyInput from '../../../uikit/CurrencyInput';
-import Header from '../../../uikit/Header';
-import ProgressBar from '../../../uikit/ProgressBar';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
+import Button from '@uikit/Button';
+import Checkbox from '@uikit/Checkbox';
+import CurrencyInput from '@uikit/CurrencyInput';
+import Header from '@uikit/Header';
+import ProgressBar from '@uikit/ProgressBar';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
+
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationStore from '../DonationStore';
 import { Bid } from '../DonationTypes';
 import validateBid from '../validateBid';
@@ -45,13 +48,11 @@ const DonationBidForm = (props: DonationBidFormProps) => {
   const [customOptionSelected, setCustomOptionSelected] = React.useState(false);
   const [customOption, setCustomOption] = React.useState('');
 
-  // When the selected incentive changes, reset the form fields
   React.useEffect(() => {
-    setAllocatedAmount(remainingDonationTotal);
-    setSelectedChoiceId(undefined);
-    setCustomOptionSelected(false);
-    setCustomOption('');
-  }, [incentiveId]);
+    if (allocatedAmount > remainingDonationTotal) {
+      setAllocatedAmount(remainingDonationTotal);
+    }
+  }, [allocatedAmount, remainingDonationTotal]);
 
   const bidValidation = React.useMemo(
     () =>
@@ -68,10 +69,20 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         selectedChoiceId != null,
         customOptionSelected,
       ),
-    [selectedChoiceId, allocatedAmount, customOption, incentive, donation, bids, bidChoices, customOptionSelected],
+    [
+      selectedChoiceId,
+      incentiveId,
+      allocatedAmount,
+      customOption,
+      incentive,
+      donation,
+      bids,
+      bidChoices.length,
+      customOptionSelected,
+    ],
   );
 
-  const handleNewChoice = React.useCallback(choiceId => {
+  const handleNewChoice = useCachedCallback(choiceId => {
     setSelectedChoiceId(choiceId);
     setCustomOptionSelected(choiceId == null);
   }, []);
@@ -111,7 +122,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
       ) : null}
 
       <CurrencyInput
-        value={allocatedAmount}
+        value={Math.min(allocatedAmount, remainingDonationTotal)}
         name="incentiveBidAmount"
         label="Amount to put towards incentive"
         hint={
@@ -132,7 +143,7 @@ const DonationBidForm = (props: DonationBidFormProps) => {
               checked={selectedChoiceId === choice.id}
               contentClassName={styles.choiceLabel}
               look={Checkbox.Looks.DENSE}
-              onChange={() => handleNewChoice(choice.id)}>
+              onChange={handleNewChoice(choice.id)}>
               <Checkbox.Header>{choice.name}</Checkbox.Header>
               <span className={styles.choiceAmount}>${choice.amount}</span>
             </Checkbox>
@@ -140,21 +151,24 @@ const DonationBidForm = (props: DonationBidFormProps) => {
         : null}
 
       {incentive.custom ? (
-        <Checkbox
-          label="Nominate a new option!"
-          name="incentiveBidNewOption"
-          checked={customOptionSelected}
-          look={Checkbox.Looks.NORMAL}
-          onChange={() => handleNewChoice(null)}>
-          <TextInput
-            value={customOption}
-            name="incentiveBidCustomOption"
-            disabled={!customOptionSelected}
-            placeholder="Enter Option Here"
-            onChange={setCustomOption}
-            maxLength={incentive.maxlength}
+        <>
+          <Checkbox
+            label="Nominate a new option!"
+            name="incentiveBidNewOption"
+            checked={customOptionSelected}
+            look={Checkbox.Looks.DENSE}
+            onChange={handleNewChoice(null)}
           />
-        </Checkbox>
+          {customOptionSelected ? (
+            <TextInput
+              value={customOption}
+              name="incentiveBidCustomOption"
+              placeholder="Enter Option Here"
+              onChange={setCustomOption}
+              maxLength={incentive.maxlength}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {!bidValidation.valid && <Text>{bidValidation.errors.map(error => error.message)}</Text>}

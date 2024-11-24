@@ -1,0 +1,13 @@
+{% load i18n %}
+{% load donation_tags %}
+
+{% if state == 'APPROVED' %}
+	{{ comment|forumfilter }}<hr>
+{% endif %}
+{% if state == 'PENDING' or state == 'FLAGGED' %}
+	<i class="fa text-gdq-black fa-question-circle"></i> ({% trans "Comment pending approval" %})
+{% elif state == 'DENIED' %}
+	<i class="fa text-gdq-red fa-times-circle"></i> ({% trans "Comment rejected" %})
+{% elif state == 'ABSENT' %}
+  	<i class="fa text-gdq-blue fa-circle-o"></i> ({% trans "No Comment" %})
+{% endif %}

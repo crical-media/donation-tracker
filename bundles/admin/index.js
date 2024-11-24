@@ -1,26 +1,48 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import HTML5Backend from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { Provider } from 'react-redux';
-import { ConnectedRouter } from 'connected-react-router';
-import { Route } from 'react-router';
 
-import ErrorBoundary from 'ui/public/errorBoundary';
+import Constants from '@common/Constants';
+import { createTrackerStore } from '@public/api';
+import V2HTTPUtils from '@public/apiv2/HTTPUtils';
+import ErrorBoundary from '@public/errorBoundary';
 
 import App from './app';
 
-window.AdminApp = function(props) {
-  ReactDOM.render(
+import '@common/init';
+
+function Routes(props) {
+  const store = createTrackerStore();
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+
+  return (
     <ErrorBoundary>
       <DndProvider backend={HTML5Backend}>
-        <Provider store={App.store}>
-          <ConnectedRouter history={App.history}>
-            <Route path={window.ROOT_PATH} component={App} />
-          </ConnectedRouter>
-        </Provider>
+        <QueryClientProvider client={queryClient}>
+          <Provider store={store}>
+            <Constants.Provider value={props.CONSTANTS}>
+              <App rootPath={props.ROOT_PATH} />
+            </Constants.Provider>
+          </Provider>
+        </QueryClientProvider>
       </DndProvider>
-    </ErrorBoundary>,
-    document.getElementById('container'),
+    </ErrorBoundary>
   );
+}
+
+window.AdminApp = function (props) {
+  V2HTTPUtils.setCSRFToken(props.csrfToken);
+
+  const root = createRoot(document.getElementById('container'));
+
+  root.render(<Routes {...props} />);
 };

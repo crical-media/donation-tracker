@@ -1,7 +1,9 @@
 import _ from 'lodash';
 
-import * as CurrencyUtils from '../../public/util/currency';
-import { Incentive } from '../event_details/EventDetailsTypes';
+import * as CurrencyUtils from '@public/util/currency';
+
+import { Incentive } from '@tracker/event_details/EventDetailsTypes';
+
 import { BID_MINIMUM_AMOUNT } from './DonationConstants';
 import { Bid, Donation, Validation } from './DonationTypes';
 
@@ -26,7 +28,10 @@ export default function validateBid(
   hasChildSelected: boolean,
   isCustom = false,
 ): Validation {
-  const preAllocatedTotal = _.sumBy(bids.filter(bid => bid.incentiveId), 'amount');
+  const preAllocatedTotal = _.sumBy(
+    bids.filter(bid => bid.incentiveId),
+    'amount',
+  );
   const remainingTotal = donation.amount ? donation.amount - preAllocatedTotal : 0;
 
   const errors = [];

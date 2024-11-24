@@ -1,0 +1,6 @@
+{% extends 'admin/index.html' %}
+
+{% block sidebar %}
+  {{ block.super }}
+  {% include 'admin/tracker/extra_actions.html' %}
+{% endblock %}

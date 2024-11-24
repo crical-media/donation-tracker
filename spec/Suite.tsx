@@ -1,21 +1,22 @@
 import * as React from 'react';
-import * as Enzyme from 'enzyme';
-import { mount, shallow } from 'enzyme';
-import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
-import Adapter from 'enzyme-adapter-react-16';
-import { combinedReducer, StoreState } from '../bundles/tracker/Store';
-import './matchers';
 import { Provider } from 'react-redux';
+import { AnyAction, applyMiddleware, createStore, Store } from 'redux';
+import { render } from '@testing-library/react';
+
+import { setAPIRoot } from '../bundles/tracker/Endpoints';
+import { combinedReducer, StoreState } from '../bundles/tracker/Store';
+
+import './matchers';
 
 let componentFakes: any[] = [];
 let oldCreateElement: typeof React.createElement;
 
-beforeEach(function() {
+beforeEach(function () {
   oldCreateElement = React.createElement.bind(React);
   componentFakes = [];
 
   // @ts-ignore
-  spyOn(React, 'createElement').and.callFake(function(type, props, ...children) {
+  spyOn(React, 'createElement').and.callFake(function (type, props, ...children) {
     const fake = componentFakes.find(f => f.componentClass === type);
     if (fake) {
       type = fake.replacementClass;
@@ -33,7 +34,7 @@ interface Children {
 }
 
 function createMockReactClass(Klass: any) {
-  return class extends React.Component<Children> {
+  return class MockClass extends React.Component<Children> {
     static displayName = `Mock${name(Klass)}`;
     static propTypes = { ...Klass.propTypes };
     static contextTypes = { ...Klass.contextTypes };
@@ -45,7 +46,7 @@ function createMockReactClass(Klass: any) {
 }
 
 function createWrappedReactClass(Klass: any) {
-  return class extends React.Component {
+  return class WrappedClass extends React.Component {
     static displayName = `Mock${name(Klass)}`;
     static propTypes = { ...Klass.propTypes };
     static contextTypes = { ...Klass.contextTypes };
@@ -104,12 +105,10 @@ export function mockState(initialState: Partial<StoreState>): void {
   store.dispatch({ type: MOCKED_STATE, newState: { ...emptyState, ...initialState } });
 }
 
-export function shallowWithState(...[element, options]: Parameters<typeof shallow>): ReturnType<typeof shallow> {
-  return shallow(<Provider store={store}>{element}</Provider>, options);
+export function renderWithState(...[element, options]: Parameters<typeof render>): ReturnType<typeof render> {
+  return render(<Provider store={store}>{element}</Provider>, options);
 }
 
-export function mountWithState(...[element, options]: Parameters<typeof mount>): ReturnType<typeof mount> {
-  return mount(<Provider store={store}>{element}</Provider>, options);
-}
-
-Enzyme.configure({ adapter: new Adapter() });
+beforeEach(() => {
+  setAPIRoot('http://testserver/');
+});

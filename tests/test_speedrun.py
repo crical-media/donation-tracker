@@ -1,38 +1,81 @@
 import datetime
+import itertools
+import random
+from typing import Iterable, List, Optional, Union
+from unittest import skipIf
 
-import pytz
-from django.conf import settings
+import django
 from django.contrib.auth.models import User
-from django.contrib.messages.middleware import MessageMiddleware
-from django.contrib.sessions.middleware import SessionMiddleware
-from django.test import TransactionTestCase, RequestFactory
+from django.core.exceptions import ValidationError
+from django.test import TransactionTestCase
 from django.urls import reverse
 
 import tracker.models as models
+from tracker import settings
+from tracker.compat import pairwise, zoneinfo
+
+from . import randgen
 from .util import today_noon
 
 
-class TestSpeedRun(TransactionTestCase):
+class TestSpeedRunBase(TransactionTestCase):
     def setUp(self):
-        self.event1 = models.Event.objects.create(datetime=today_noon, targetamount=5)
+        super().setUp()
+        if not hasattr(self, 'event'):
+            self.event = models.Event.objects.create(
+                datetime=today_noon, targetamount=5
+            )
         self.run1 = models.SpeedRun.objects.create(
-            name='Test Run', run_time='0:45:00', setup_time='0:05:00', order=1
+            event=self.event,
+            name='Test Run',
+            run_time='45:00',
+            setup_time='5:00',
+            order=1,
         )
         self.run2 = models.SpeedRun.objects.create(
-            name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
+            event=self.event,
+            name='Test Run 2',
+            run_time='15:00',
+            setup_time='5:00',
+            order=2,
         )
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:05:00', order=3
+            event=self.event, name='Test Run 3', run_time='5:00', order=3
         )
         self.run4 = models.SpeedRun.objects.create(
-            name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
+            event=self.event,
+            name='Test Run 4',
+            run_time='1:20:00',
+            setup_time='5:00',
+            order=None,
         )
-        self.run5 = models.SpeedRun.objects.create(name='Test Run 5', order=4)
-        self.runner1 = models.Runner.objects.create(name='trihex')
-        self.runner2 = models.Runner.objects.create(name='neskamikaze')
+        self.run5 = models.SpeedRun.objects.create(
+            event=self.event, name='Test Run 5', order=4, run_time='15:00'
+        )
+        self.runner1 = models.Talent.objects.create(name='trihex')
+        self.runner2 = models.Talent.objects.create(name='neskamikaze')
+        self.headset1 = models.Talent.objects.create(name='SpikeVegeta')
+        self.headset2 = models.Talent.objects.create(name='puwexil')
+        link_type = models.VideoLinkType.objects.create(name='youtube')
+        self.video_link1 = models.VideoLink.objects.create(
+            run=self.run2, link_type=link_type, url='https://youtu.be/deadbeef'
+        )
+        self.tag1 = models.Tag.objects.create(name='foo')
+        self.tag2 = models.Tag.objects.create(name='bar')
+
+
+class TestSpeedRun(TestSpeedRunBase):
+    # TODO: maybe disallow partial seconds? this cropped as a bug but we never actually use milliseconds
+
+    def test_timestamps(self):
+        self.run1.run_time = '45:00.1'
+        self.run1.setup_time = 300000
+        self.run1.save()
+        self.assertEqual(self.run1.run_time, '0:45:00.100')
+        self.assertEqual(self.run1.setup_time, '0:05:00')
 
     def test_first_run_start_time(self):
-        self.assertEqual(self.run1.starttime, self.event1.datetime)
+        self.assertEqual(self.run1.starttime, self.event.datetime)
 
     def test_second_run_start_time(self):
         self.assertEqual(
@@ -49,23 +92,28 @@ class TestSpeedRun(TransactionTestCase):
             self.run3.endtime, self.run2.endtime + datetime.timedelta(minutes=5)
         )
 
-    def test_null_order_run_start_time(self):
+    def test_null_order(self):
         self.assertEqual(self.run4.starttime, None)
-
-    def test_null_order_run_end_time(self):
         self.assertEqual(self.run4.endtime, None)
 
-    def test_no_run_or_setup_time_run_start_time(self):
-        self.assertEqual(self.run5.starttime, None)
+    def test_ordered_needs_run_or_setup_time(self):
+        with self.assertRaises(ValidationError):
+            self.run5.run_time = '0'
+            self.run5.setup_time = '0'
+            self.run5.full_clean()
 
-    def test_no_run_or_setup_time_run_end_time(self):
-        self.assertEqual(self.run5.endtime, None)
+        self.run5.setup_time = '5:00'
+        self.run5.full_clean()
+
+        self.run5.run_time = '5:00'
+        self.run5.setup_time = '0'
+        self.run5.full_clean()
 
     def test_removing_run_from_schedule(self):
         self.run1.order = None
         self.run1.save()
         self.run2.refresh_from_db()
-        self.assertEqual(self.run2.starttime, self.event1.datetime)
+        self.assertEqual(self.run2.starttime, self.event.datetime)
 
     def test_update_runners_on_save(self):
         self.run1.runners.add(self.runner1, self.runner2)
@@ -89,6 +137,56 @@ class TestSpeedRun(TransactionTestCase):
             self.run1.deprecated_runners, ', '.join(sorted([self.runner2.name]))
         )
 
+    def test_anchor_time(self):
+        self.run3.anchor_time = self.run3.starttime
+        self.run3.save()
+        self.run1.clean()
+        with self.subTest('run time drift'), self.assertRaises(ValidationError):
+            self.run1.run_time = '1:00:00'
+            self.run1.clean()
+        self.run1.refresh_from_db()
+        with self.subTest('setup time drift'), self.assertRaises(ValidationError):
+            self.run1.run_time = '45:00'
+            self.run1.setup_time = '20:00'
+            self.run1.clean()
+        self.run1.refresh_from_db()
+        with self.subTest('bad anchor order'), self.assertRaises(ValidationError):
+            self.run2.anchor_time = self.run3.anchor_time + datetime.timedelta(
+                minutes=5
+            )
+            self.run2.clean()
+        self.run2.refresh_from_db()
+        with self.subTest('setup time correction'):
+            self.run2.setup_time = '2:00'
+            self.run2.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:05:00')
+            self.run3.refresh_from_db()
+            self.assertEqual(self.run3.starttime, self.run3.anchor_time)
+            self.run3.anchor_time += datetime.timedelta(minutes=5)
+            self.run3.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:10:00')
+            self.run1.setup_time = '10:00'
+            self.run1.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:05:00')
+            self.run2.run_time = '17:00'
+            self.run2.clean()
+            self.run2.save()
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.setup_time, '0:03:00')
+        with self.subTest('bad anchor time'), self.assertRaises(ValidationError):
+            self.run3.anchor_time -= datetime.timedelta(days=1)
+            self.run3.clean()
+
+    def test_tags(self):
+        with self.subTest('priority tag auto adds to list'):
+            self.run1.tags.add(self.tag2)
+            self.run1.priority_tag = self.tag1
+            self.run1.save()
+            self.assertSetEqual(set(self.run1.tags.all()), {self.tag1, self.tag2})
+
 
 class TestMoveSpeedRun(TransactionTestCase):
     def setUp(self):
@@ -99,119 +197,212 @@ class TestMoveSpeedRun(TransactionTestCase):
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
         )
+
+        # order is 4 to make sure that the various movements all close the hole
+
         self.run3 = models.SpeedRun.objects.create(
-            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=3
+            name='Test Run 3', run_time='0:20:00', setup_time='0:05:00', order=4
         )
         self.run4 = models.SpeedRun.objects.create(
             name='Test Run 4', run_time='0:20:00', setup_time='0:05:00', order=None
         )
 
-    def test_after_to_before(self):
+        self.interview = models.Interview.objects.create(
+            event=self.event1, topic='Test Interview', anchor=self.run3, suborder=1
+        )
+        self.ad = models.Ad.objects.create(
+            event=self.event1, ad_name='Test Ad', order=1, suborder=1
+        )
+
+    def assertResults(
+        self,
+        moving: models.SpeedRun,
+        other: Optional[models.SpeedRun],
+        before: bool,
+        *,
+        expected_change_count: int = 0,
+        expected_error_keys: Optional[Union[List[str], type]] = None,
+        expected_status_code: int = 200,
+    ):
         from tracker.views.commands import MoveSpeedRun
 
-        output, status = MoveSpeedRun(
-            {'moving': self.run2.id, 'other': self.run1.id, 'before': True}
+        output, status_code = MoveSpeedRun(
+            {
+                'moving': moving.id,
+                'other': other.id if other else None,
+                'before': before,
+            }
         )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
+        self.assertEqual(status_code, expected_status_code)
+        if expected_status_code == 200:
+            self.assertEqual(len(output), expected_change_count)
+        if expected_error_keys is not None:
+            self.assertIsInstance(output, dict, msg='Expected a dict')
+            self.assertTrue('error' in output, msg='Expected an `error` key in dict')
+            # a bit goofy perhaps but hopefully commands go away soon
+            if isinstance(expected_error_keys, type):
+                self.assertIsInstance(output['error'], expected_error_keys)
+            else:
+                self.assertEqual(set(output['error'].keys()), set(expected_error_keys))
+
+        self.interview.refresh_from_db()
         self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertEqual(
+            self.interview.order, self.run3.order, 'Interview order mismatch'
+        )
+
+    def assertRunsInOrder(
+        self,
+        ordered: Iterable[models.SpeedRun],
+        unordered: Optional[Iterable[models.SpeedRun]] = None,
+    ):
+        if unordered is None:
+            unordered = []
+        all_runs = list(itertools.chain(ordered, unordered))
+
+        self.assertNotEqual(len(all_runs), 0, msg='Run list was empty')
+
+        for r in all_runs:
+            r.refresh_from_db()
+
+        for a, b in pairwise(all_runs):
+            self.assertEqual(
+                a.event_id, b.event_id, msg='Runs are from different events'
+            )
+
+        # be exhaustive
+        self.assertEqual(
+            len(all_runs),
+            models.SpeedRun.objects.filter(event=all_runs[0].event_id).count(),
+            msg='Not all runs for this event were provided',
+        )
+
+        for n, (a, b) in enumerate(pairwise(ordered), start=1):
+            with self.subTest(f'ordered {n}: {a}, {b}'):
+                self.assertEqual(a.order, n, msg='Order was wrong')
+                self.assertEqual(b.order, n + 1, msg='Order was wrong')
+                self.assertEqual(a.endtime, b.starttime, msg='Run times do not match')
+
+        for r in unordered:
+            with self.subTest(f'unordered {r}'):
+                self.assertIsNone(r.order, msg='Run should have been unordered')
+
+    def test_after_to_before(self):
+        self.assertResults(self.run2, self.run1, True, expected_change_count=3)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_after_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run3.id, 'other': self.run1.id, 'before': False}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 1)
-        self.assertEqual(self.run2.order, 3)
-        self.assertEqual(self.run3.order, 2)
+        self.assertResults(self.run3, self.run1, False, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run3, self.run2], [self.run4])
 
     def test_before_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run3.id, 'before': True}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertResults(self.run1, self.run3, True, expected_change_count=3)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_before_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run1.id, 'other': self.run2.id, 'before': False}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run1.refresh_from_db()
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.assertEqual(self.run1.order, 2)
-        self.assertEqual(self.run2.order, 1)
-        self.assertEqual(self.run3.order, 3)
+        self.assertResults(self.run1, self.run2, False, expected_change_count=3)
+        self.assertRunsInOrder([self.run2, self.run1, self.run3], [self.run4])
 
     def test_unordered_to_before(self):
-        from tracker.views.commands import MoveSpeedRun
-
-        output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': True}
-        )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 3)
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.assertEqual(self.run2.order, 3)
-        self.assertEqual(self.run3.order, 4)
-        self.assertEqual(self.run4.order, 2)
+        self.assertResults(self.run4, self.run2, True, expected_change_count=3)
+        self.assertRunsInOrder([self.run1, self.run4, self.run2, self.run3])
 
     def test_unordered_to_after(self):
-        from tracker.views.commands import MoveSpeedRun
+        self.assertResults(self.run4, self.run2, False, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run2, self.run4, self.run3])
 
-        output, status = MoveSpeedRun(
-            {'moving': self.run4.id, 'other': self.run2.id, 'before': False}
+    def test_remove_from_order(self):
+        self.assertResults(self.run2, None, True, expected_change_count=2)
+        self.assertRunsInOrder([self.run1, self.run3], [self.run2, self.run4])
+
+    def test_remove_last_run(self):
+        self.assertResults(self.run3, None, True, expected_change_count=1)
+        self.assertRunsInOrder([self.run1, self.run2], [self.run3, self.run4])
+
+    def test_already_removed(self):
+        self.assertResults(self.run4, None, True, expected_status_code=400)
+
+    def test_error_cases(self):
+        self.assertResults(
+            self.run2,
+            self.run2,
+            True,
+            expected_error_keys=str,
+            expected_status_code=400,
         )
-        self.assertEqual(status, 200)
-        self.assertEqual(len(output), 2)
-        self.run2.refresh_from_db()
-        self.run3.refresh_from_db()
-        self.run4.refresh_from_db()
-        self.assertEqual(self.run2.order, 2)
-        self.assertEqual(self.run3.order, 4)
-        self.assertEqual(self.run4.order, 3)
+
+        self.assertResults(
+            self.run4, None, True, expected_error_keys=str, expected_status_code=400
+        )
+
+    def test_too_long_for_anchor(self):
+        self.run2.anchor_time = self.run2.starttime
+        self.run2.save()
+
+        self.assertResults(
+            self.run3,
+            self.run2,
+            True,
+            expected_error_keys=['setup_time'],
+            expected_status_code=400,
+        )
+
+    def test_across_anchor_before(self):
+        self.run1.setup_time = '2:00:00'
+        self.run1.save()
+        self.run2.anchor_time = self.run1.endtime
+        self.run2.save()
+        self.run4.order = 5
+        self.run4.save()
+
+        # check for ordering conflict
+
+        self.assertResults(
+            self.run3,
+            self.run1,
+            True,
+            expected_status_code=400,
+            expected_error_keys=['suborder'],
+        )
+
+        self.interview.suborder = 2
+        self.interview.save()
+
+        self.assertResults(self.run3, self.run1, True, expected_change_count=4)
+        self.assertRunsInOrder([self.run3, self.run1, self.run2, self.run4])
+
+        self.assertResults(self.run3, self.run4, True, expected_change_count=4)
+        self.assertRunsInOrder([self.run1, self.run2, self.run3, self.run4])
+
+    def test_across_anchor_after(self):
+        self.run3.anchor_time = self.run3.starttime
+        self.run3.save()
+
+        self.assertResults(self.run1, self.run3, False, expected_change_count=3)
+        self.assertRunsInOrder([self.run2, self.run3, self.run1], [self.run4])
 
 
 class TestSpeedRunAdmin(TransactionTestCase):
     def setUp(self):
-        self.factory = RequestFactory()
-        self.sessions = SessionMiddleware()
-        self.messages = MessageMiddleware()
         self.event1 = models.Event.objects.create(
             datetime=today_noon,
             targetamount=5,
-            timezone=pytz.timezone(getattr(settings, 'TIME_ZONE', 'America/Denver')),
+            timezone=zoneinfo.ZoneInfo(
+                getattr(settings, 'TIME_ZONE', 'America/Denver')
+            ),
         )
         self.run1 = models.SpeedRun.objects.create(
             name='Test Run 1', run_time='0:45:00', setup_time='0:05:00', order=1
         )
         self.run2 = models.SpeedRun.objects.create(
             name='Test Run 2', run_time='0:15:00', setup_time='0:05:00', order=2
+        )
+        self.run3 = models.SpeedRun.objects.create(
+            name='Test Run 3',
+            run_time='0:35:00',
+            setup_time='0:05:00',
+            anchor_time=today_noon + datetime.timedelta(minutes=90),
+            order=3,
         )
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser('admin', 'nobody@example.com', 'password')
@@ -230,26 +421,107 @@ class TestSpeedRunAdmin(TransactionTestCase):
         self.assertEqual(self.run1.setup_time, '0:05:00')
 
     def test_start_run(self):
-        self.client.login(username='admin', password='password')
-        resp = self.client.post(
-            reverse('admin:start_run', args=(self.run2.id,)),
-            data={
-                'run_time': '0:41:20',
-                'start_time': '%s 12:51:00' % self.event1.date,
-            },
-        )
-        self.assertEqual(resp.status_code, 302)
-        self.run1.refresh_from_db()
-        self.assertEqual(self.run1.run_time, '0:41:20')
-        self.assertEqual(self.run1.setup_time, '0:09:40')
+        from tracker.admin.forms import StartRunForm
 
-    def test_invalid_time(self):
         self.client.login(username='admin', password='password')
-        resp = self.client.post(
-            reverse('admin:start_run', args=(self.run2.id,)),
+        with self.subTest('normal run'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run2.id,)),
+                data={
+                    'run_time': '0:41:20',
+                    'start_time': '%s 12:51:00' % self.event1.date,
+                    'run_id': self.run2.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.run1.refresh_from_db()
+            self.assertEqual(self.run1.run_time, '0:41:20')
+            self.assertEqual(self.run1.setup_time, '0:09:40')
+        with self.subTest('drift failure'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run2.id,)),
+                data={
+                    'run_time': '0:41:20',
+                    'start_time': '%s 13:25:00' % self.event1.date,
+                    'run_id': self.run2.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 200)
+            self.assertFormError(
+                resp.context['form'], None, StartRunForm.Errors.anchor_time_drift
+            )
+        with self.subTest('anchored run'):
+            resp = self.client.post(
+                reverse('admin:start_run', args=(self.run3.id,)),
+                data={
+                    'run_time': '0:13:20',
+                    'start_time': '%s 13:35:00' % self.event1.date,
+                    'run_id': self.run3.id,
+                },
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.run2.refresh_from_db()
+            self.assertEqual(self.run2.run_time, '0:13:20')
+            self.assertEqual(self.run2.setup_time, '0:30:40')
+            self.run3.refresh_from_db()
+            expected_start = datetime.datetime.combine(
+                self.event1.date, datetime.time(13, 35), tzinfo=self.event1.timezone
+            )
+            self.assertEqual(self.run3.anchor_time, expected_start)
+            self.assertEqual(self.run3.starttime, expected_start)
+
+    @skipIf(
+        django.VERSION < (4, 1),
+        'assertFormError requires response object until Django 4.1',
+    )
+    def test_invalid_time(self):
+        from tracker.admin.forms import StartRunForm
+
+        form = StartRunForm(
+            initial={
+                'run_id': self.run2.id,
+            },
             data={
                 'run_time': '0:41:20',
                 'start_time': '%s 11:21:00' % self.event1.date,
+                'run_id': self.run2.id,
             },
         )
-        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(form.is_valid())
+        self.assertFormError(form, None, StartRunForm.Errors.invalid_start_time)
+
+    @skipIf(
+        django.VERSION < (4, 1),
+        'assertFormError requires response object until Django 4.1',
+    )
+    def test_anchor_drift(self):
+        from tracker.admin.forms import StartRunForm
+
+        form = StartRunForm(
+            initial={
+                'run_id': self.run2.id,
+            },
+            data={
+                'run_time': '0:41:20',
+                'start_time': '%s 13:21:00' % self.event1.date,
+                'run_id': self.run2.id,
+            },
+        )
+        self.assertFalse(form.is_valid())
+        self.assertFormError(form, None, StartRunForm.Errors.anchor_time_drift)
+
+
+class TestSpeedrunList(TransactionTestCase):
+    def setUp(self):
+        self.rand = random.Random(None)
+        self.event = randgen.generate_event(self.rand, start_time=today_noon)
+        self.event.save()
+
+    def test_run_event_list(self):
+        resp = self.client.get(
+            reverse(
+                'tracker:runindex',
+            )
+        )
+        self.assertContains(resp, self.event.name)
+        self.assertContains(resp, reverse('tracker:runindex', args=(self.event.short,)))

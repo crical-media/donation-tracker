@@ -1,13 +1,13 @@
-import _ from 'lodash';
 import React from 'react';
-import PropTypes from 'prop-types';
-import { DragSource } from 'react-dnd';
+import _ from 'lodash';
 import moment from 'moment';
+import PropTypes from 'prop-types';
+import { useDrag } from 'react-dnd';
 
-import Spinner from '../../public/spinner';
-import OrderTarget from '../../public/orderTarget';
-import FormField from '../../public/formField';
-import ErrorList from '../../public/errorList';
+import ErrorList from '@public/errorList';
+import FormField from '@public/formField';
+import OrderTarget from '@public/orderTarget';
+import Spinner from '@public/spinner';
 
 import SpeedrunDropTarget from './dragDrop/speedrunDropTarget';
 
@@ -18,7 +18,7 @@ class Speedrun extends React.Component {
 
   line() {
     const { speedrun, draft, connectDragPreview, editModel } = this.props;
-    const fieldErrors = draft ? draft._fields || {} : {};
+    const fieldErrors = draft?._fields || {};
     const { cancelEdit_, editModel_, updateField_, save_ } = this;
     return draft ? (
       <React.Fragment>
@@ -103,28 +103,40 @@ class Speedrun extends React.Component {
       speedrun && speedrun.order !== null && speedrun.starttime !== null
         ? moment(speedrun.starttime).format('dddd, MMMM Do, h:mm a')
         : 'Unscheduled';
-    const spinning = !!(speedrun._internal && (speedrun._internal.moving || speedrun._internal.saving));
+    const spinning = !!(speedrun._internal?.moving || speedrun._internal?.saving);
+    const errors = speedrun._internal?.errors;
     return (
-      <tr style={{ opacity: isDragging ? 0.5 : 1 }}>
-        <td className="small">{starttime}</td>
-        <td style={{ textAlign: 'center' }}>
-          {moveSpeedrun ? (
-            <OrderTarget
-              spinning={spinning}
-              connectDragSource={connectDragSource}
-              nullOrder={saveField && nullOrder_}
-              target={!!speedrun.order}
-              targetType={SpeedrunDropTarget}
-              targetProps={{
-                pk: speedrun.pk,
-                legalMove: legalMove_,
-                moveSpeedrun: moveSpeedrun,
-              }}
-            />
-          ) : null}
-        </td>
-        {this.line()}
-      </tr>
+      <>
+        {errors && Object.entries(errors).map(([key, errors]) => <ErrorList key={key} errors={errors} />)}
+        <tr style={{ opacity: isDragging ? 0.5 : 1 }}>
+          <td className="small">
+            {starttime}
+            {speedrun.anchor_time ? (
+              <>
+                <br />
+                Anchored
+              </>
+            ) : null}
+          </td>
+          <td style={{ textAlign: 'center' }}>
+            {moveSpeedrun ? (
+              <OrderTarget
+                spinning={spinning}
+                connectDragSource={connectDragSource}
+                nullOrder={saveField && nullOrder_}
+                target={!!speedrun.order}
+                targetType={SpeedrunDropTarget}
+                targetProps={{
+                  pk: speedrun.pk,
+                  legalMove: legalMove_,
+                  moveSpeedrun: moveSpeedrun,
+                }}
+              />
+            ) : null}
+          </td>
+          {this.line()}
+        </tr>
+      </>
     );
   }
 
@@ -150,7 +162,7 @@ class Speedrun extends React.Component {
   };
 
   nullOrder_ = () => {
-    this.props.saveField(this.props.speedrun, 'order', null);
+    this.props.moveSpeedrun(this.props.speedrun.pk, null, true);
   };
 
   cancelEdit_ = () => {
@@ -173,6 +185,7 @@ const SpeedrunShape = PropTypes.shape({
   //console: PropTypes.string.isRequired,
   start_time: PropTypes.string,
   end_time: PropTypes.string,
+  anchor_time: PropTypes.string,
   description: PropTypes.string.isRequired,
   commentators: PropTypes.string.isRequired,
 });
@@ -184,29 +197,25 @@ Speedrun.propTypes = {
   speedrun: SpeedrunShape.isRequired,
   draft: SpeedrunShape,
   moveSpeedrun: PropTypes.func,
+  updateField: PropTypes.func,
   saveField: PropTypes.func,
   saveModel: PropTypes.func,
   cancelEdit: PropTypes.func,
   editModel: PropTypes.func,
 };
 
-const speedrunSource = {
-  beginDrag: function(props) {
-    return { source_pk: props.speedrun.pk };
-  },
+export default function DraggableSpeedrun(props) {
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
+    type: 'speedrun',
+    item: { pk: props.speedrun.pk },
+    endDrag(props, monitor) {
+      const result = monitor.getDropResult();
+      if (result && result.action) {
+        result.action(props.speedrun.pk);
+      }
+    },
+    collect: monitor => ({ isDragging: monitor.isDragging() }),
+  }));
 
-  endDrag: function(props, monitor) {
-    const result = monitor.getDropResult();
-    if (result && result.action) {
-      result.action(props.speedrun.pk);
-    }
-  },
-};
-
-export default DragSource('Speedrun', speedrunSource, function collect(connect, monitor) {
-  return {
-    connectDragSource: connect.dragSource(),
-    connectDragPreview: connect.dragPreview(),
-    isDragging: monitor.isDragging(),
-  };
-})(Speedrun);
+  return <Speedrun {...props} connectDragSource={drag} connectDragPreview={preview} isDragging={isDragging} />;
+}

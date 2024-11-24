@@ -5,7 +5,8 @@ from django.urls import reverse
 
 import tracker.forms as forms
 import tracker.models as models
-from .util import today_noon, tomorrow_noon, long_ago_noon
+
+from .util import long_ago_noon, today_noon, tomorrow_noon
 
 
 class TestDonorNameAssignment(TransactionTestCase):
@@ -44,7 +45,12 @@ class TestDonateViews(TransactionTestCase):
 
     def testNormalEvent(self):
         resp = self.client.get(reverse('tracker:donate', args=(self.normal_event.id,)))
-        self.assertEqual(resp.status_code, 200)
+        self.assertRedirects(
+            resp,
+            reverse('tracker:ui:donate', args=(self.normal_event.id,)),
+            status_code=301,
+        )
+
         resp = self.client.get(
             reverse('tracker:ui:donate', args=(self.normal_event.id,))
         )

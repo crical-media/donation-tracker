@@ -1,9 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { useParams } from 'react-router';
 
-import { actions } from 'ui/public/api';
-import Spinner from 'ui/public/spinner';
-import authHelper from 'ui/public/api/helpers/auth';
+import { actions } from '@public/api';
+import authHelper from '@public/api/helpers/auth';
+import Spinner from '@public/spinner';
 
 import SpeedrunTable from './speedrunTable';
 
@@ -12,9 +13,16 @@ class ScheduleEditor extends React.Component {
     const { speedruns, event, drafts, status, moveSpeedrun, editable } = this.props;
     const { saveField_, saveModel_, editModel_, cancelEdit_, newSpeedrun_, updateField_ } = this;
     const loading = status.speedrun === 'loading' || status.event === 'loading' || status.me === 'loading';
+    const error = status.speedrun === 'error' || status.event === 'error' || status.me === 'error';
     return (
       <Spinner spinning={loading}>
-        {status.speedrun === 'success' ? (
+        {error ? (
+          <>
+            {status.speedrun === 'error' && <div>Failed to fetch speedruns</div>}
+            {status.event === 'error' && <div>Failed to fetch events</div>}
+            {status.me === 'error' && <div>Failed to fetch me</div>}
+          </>
+        ) : (
           <SpeedrunTable
             event={event}
             drafts={drafts}
@@ -27,19 +35,19 @@ class ScheduleEditor extends React.Component {
             saveField={editable ? saveField_ : null}
             updateField={editable ? updateField_ : null}
           />
-        ) : null}
+        )}
       </Spinner>
     );
   }
 
   componentDidUpdate(newProps) {
-    if (this.props.match.params.event !== newProps.match.params.event) {
-      this.refreshSpeedruns_(newProps.match.params.event);
+    if (this.props.eventId !== newProps.eventId) {
+      this.refreshSpeedruns_(newProps.eventId);
     }
   }
 
   componentDidMount() {
-    this.refreshSpeedruns_(this.props.match.params.event);
+    this.refreshSpeedruns_(this.props.eventId);
   }
 
   refreshSpeedruns_(event) {
@@ -80,16 +88,16 @@ class ScheduleEditor extends React.Component {
 function select(state, props) {
   const { models, drafts, status, singletons } = state;
   const { speedrun: speedruns, event: events = [] } = models;
-  const event = events.find(e => e.pk === parseInt(props.match.params.event)) || null;
+  const event = events.find(e => e.pk === parseInt(props.eventId)) || null;
   const { me } = singletons;
   return {
     event,
     speedruns,
     status,
-    drafts: drafts.speedrun || {},
+    drafts: drafts?.speedrun || {},
     editable:
-      authHelper.hasPermission(me, `${APP_NAME}.change_speedrun`) &&
-      (!(event && event.locked) || authHelper.hasPermission(me, `${APP_NAME}.can_edit_locked_events`)),
+      authHelper.hasPermission(me, `tracker.change_speedrun`) &&
+      (!(event && event.locked) || authHelper.hasPermission(me, `tracker.can_edit_locked_events`)),
   };
 }
 
@@ -100,7 +108,10 @@ function dispatch(dispatch) {
     },
     moveSpeedrun: (source, destination, before) => {
       dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', true));
-      dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', true));
+      if (destination != null) {
+        dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', true));
+      }
+      dispatch(actions.models.setInternalModelField('speedrun', source, 'errors', null));
       dispatch(
         actions.models.command({
           type: 'MoveSpeedRun',
@@ -109,9 +120,14 @@ function dispatch(dispatch) {
             other: destination,
             before: before ? 1 : 0,
           },
+          fail: json => {
+            dispatch(actions.models.setInternalModelField('speedrun', source, 'errors', json.error));
+          },
           always: () => {
             dispatch(actions.models.setInternalModelField('speedrun', source, 'moving', false));
-            dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', false));
+            if (destination != null) {
+              dispatch(actions.models.setInternalModelField('speedrun', destination, 'moving', false));
+            }
           },
         }),
       );
@@ -134,7 +150,9 @@ function dispatch(dispatch) {
   };
 }
 
-export default connect(
-  select,
-  dispatch,
-)(ScheduleEditor);
+const Connected = connect(select, dispatch)(ScheduleEditor);
+
+export default function Wrapped() {
+  const { eventId } = useParams();
+  return <Connected eventId={eventId} />;
+}

@@ -1,13 +1,18 @@
-import { getEvent } from './EventStore';
-import { combinedReducer, StoreState } from '../Store';
+import { combinedReducer, StoreState } from '@tracker/Store';
+
 import { getFixtureEvent } from '../../../spec/fixtures/event';
+import { getEvent } from './EventStore';
 
 describe('EventStore', () => {
   const event = getFixtureEvent();
   let state: StoreState;
 
   beforeEach(() => {
-    state = { ...combinedReducer(undefined, { type: 'INIT' }), events: { loading: false, events: { '1': event } } };
+    state = {
+      // @ts-expect-error `type: INIT` is an internal thing that isn't part of our reducers.
+      ...combinedReducer(undefined, { type: 'INIT' }),
+      events: { loading: false, events: { '1': event } },
+    };
   });
 
   describe('#getEvent', () => {

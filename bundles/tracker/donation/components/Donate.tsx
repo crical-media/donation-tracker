@@ -1,25 +1,31 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import Anchor from '../../../uikit/Anchor';
-import Button from '../../../uikit/Button';
-import Container from '../../../uikit/Container';
-import CurrencyInput from '../../../uikit/CurrencyInput';
-import ErrorAlert from '../../../uikit/ErrorAlert';
-import Header from '../../../uikit/Header';
-import RadioGroup from '../../../uikit/RadioGroup';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import useDispatch from '../../hooks/useDispatch';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { StoreState } from '../../Store';
+import { useConstants } from '@common/Constants';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
+import Anchor from '@uikit/Anchor';
+import Button from '@uikit/Button';
+import Container from '@uikit/Container';
+import CurrencyInput from '@uikit/CurrencyInput';
+import ErrorAlert from '@uikit/ErrorAlert';
+import Header from '@uikit/Header';
+import RadioGroup from '@uikit/RadioGroup';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
+
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
+import { AnalyticsEvent, track } from '../../analytics/Analytics';
 import * as DonationActions from '../DonationActions';
+import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import * as DonationStore from '../DonationStore';
 import DonationIncentives from './DonationIncentives';
 import DonationPrizes from './DonationPrizes';
 
-import { AMOUNT_PRESETS, EMAIL_OPTIONS } from '../DonationConstants';
 import styles from './Donate.mod.css';
 
 type DonateProps = {
@@ -27,10 +33,19 @@ type DonateProps = {
 };
 
 const Donate = (props: DonateProps) => {
+  const { PRIVACY_POLICY_URL } = useConstants();
   const dispatch = useDispatch();
   const { eventId } = props;
 
-  const { eventDetails, prizes, donation, bids, donationValidity, commentErrors } = useSelector(
+  const urlHash = useLocation().hash;
+  React.useEffect(() => {
+    const presetAmount = CurrencyUtils.parseCurrency(urlHash);
+    if (presetAmount != null) {
+      dispatch(DonationActions.updateDonation({ amount: presetAmount }));
+    }
+  }, [dispatch, urlHash]);
+
+  const { eventDetails, prizes, donation, bids, commentErrors, donationValidity } = useSelector(
     (state: StoreState) => ({
       eventDetails: EventDetailsStore.getEventDetails(state),
       prizes: EventDetailsStore.getPrizes(state),
@@ -40,6 +55,16 @@ const Donate = (props: DonateProps) => {
       donationValidity: DonationStore.validateDonation(state),
     }),
   );
+
+  React.useEffect(() => {
+    track(AnalyticsEvent.DONATE_FORM_VIEWED, {
+      event_url_id: eventId,
+      prize_count: prizes.length,
+      bid_count: bids.length,
+    });
+    // Only want to fire this event when the context of the page changes, not when data updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   const { receiverName, donateUrl, minimumDonation, maximumDonation, step } = eventDetails;
   const { name, email, wantsEmails, amount, comment } = donation;
@@ -57,6 +82,19 @@ const Donate = (props: DonateProps) => {
     }
   }, [donateUrl, eventDetails.csrfToken, donation, bids, donationValidity]);
 
+  const updateName = React.useCallback((name: string) => updateDonation({ name }), [updateDonation]);
+  const updateEmail = React.useCallback((email: string) => updateDonation({ email }), [updateDonation]);
+  const updateWantsEmails = React.useCallback(
+    (value: 'CURR' | 'OPTIN' | 'OPTOUT') => updateDonation({ wantsEmails: value }),
+    [updateDonation],
+  );
+  const updateAmount = React.useCallback((amount: number) => updateDonation({ amount }), [updateDonation]);
+  const updateAmountPreset = useCachedCallback(
+    amountPreset => updateDonation({ amount: amountPreset }),
+    [updateDonation],
+  );
+  const updateComment = React.useCallback((comment: string) => updateDonation({ comment }), [updateDonation]);
+
   return (
     <Container>
       <ErrorAlert errors={commentErrors.__all__} />
@@ -73,7 +111,7 @@ const Donate = (props: DonateProps) => {
           label="Preferred Name/Alias"
           hint="Leave blank to donate anonymously"
           size={TextInput.Sizes.LARGE}
-          onChange={name => updateDonation({ name })}
+          onChange={updateName}
           maxLength={32}
           autoFocus
         />
@@ -83,15 +121,15 @@ const Donate = (props: DonateProps) => {
           value={email}
           label="Email Address"
           hint={
-            window.PRIVACY_POLICY_URL && (
+            PRIVACY_POLICY_URL && (
               <>
-                Click <Anchor href={window.PRIVACY_POLICY_URL}>here</Anchor> for our privacy policy
+                Click <Anchor href={PRIVACY_POLICY_URL}>here</Anchor> for our privacy policy
               </>
             )
           }
           size={TextInput.Sizes.LARGE}
           type={TextInput.Types.EMAIL}
-          onChange={email => updateDonation({ email })}
+          onChange={updateEmail}
           maxLength={128}
         />
 
@@ -105,7 +143,7 @@ const Donate = (props: DonateProps) => {
           className={styles.emailOptin}
           options={EMAIL_OPTIONS}
           value={wantsEmails}
-          onChange={value => updateDonation({ wantsEmails: value })}
+          onChange={updateWantsEmails}
         />
 
         <ErrorAlert errors={commentErrors.amount} />
@@ -120,7 +158,7 @@ const Donate = (props: DonateProps) => {
             </React.Fragment>
           }
           size={CurrencyInput.Sizes.LARGE}
-          onChange={amount => updateDonation({ amount })}
+          onChange={updateAmount}
           step={step}
           min={minimumDonation}
           max={maximumDonation}
@@ -131,7 +169,7 @@ const Donate = (props: DonateProps) => {
               className={styles.amountPreset}
               key={amountPreset}
               look={Button.Looks.OUTLINED}
-              onClick={() => updateDonation({ amount: amountPreset })}>
+              onClick={updateAmountPreset(amountPreset)}>
               ${amountPreset}
             </Button>
           ))}
@@ -146,7 +184,7 @@ const Donate = (props: DonateProps) => {
           placeholder="Enter Comment Here"
           hint="Please refrain from offensive language or hurtful remarks. All donation comments are screened and will be removed from the website if deemed unacceptable."
           multiline
-          onChange={comment => updateDonation({ comment })}
+          onChange={updateComment}
           maxLength={5000}
           rows={5}
         />

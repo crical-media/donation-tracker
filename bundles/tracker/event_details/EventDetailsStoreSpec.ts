@@ -1,6 +1,6 @@
-import { getTopLevelIncentives } from './EventDetailsStore';
-import { combinedReducer, StoreState } from '../Store';
 import { getFixtureBid } from '../../../spec/fixtures/bid';
+import { combinedReducer, StoreState } from '../Store';
+import { getTopLevelIncentives } from './EventDetailsStore';
 
 describe('EventDetailsStore', () => {
   const bid1 = getFixtureBid({ id: 1, order: 50 });
@@ -8,6 +8,7 @@ describe('EventDetailsStore', () => {
   let state: StoreState;
 
   beforeEach(() => {
+    // @ts-expect-error `type: INIT` is an internal thing that isn't part of our reducers.
     state = combinedReducer(undefined, { type: 'INIT' });
     state = {
       ...state,

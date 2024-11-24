@@ -1,14 +1,15 @@
 import * as React from 'react';
 import { useSelector } from 'react-redux';
 
-import * as CurrencyUtils from '../../../public/util/currency';
-import Anchor from '../../../uikit/Anchor';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
+import { useConstants } from '@common/Constants';
+import * as CurrencyUtils from '@public/util/currency';
+import Anchor from '@uikit/Anchor';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
 
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { Prize } from '../../event_details/EventDetailsTypes';
-import { Routes } from '../../router/RouterUtils';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { Prize } from '@tracker/event_details/EventDetailsTypes';
+import { Routes } from '@tracker/router/RouterUtils';
 
 import styles from './DonationPrizes.mod.css';
 
@@ -38,6 +39,7 @@ type PrizesProps = {
 };
 
 const Prizes = (props: PrizesProps) => {
+  const { SWEEPSTAKES_URL } = useConstants();
   const { eventId } = props;
   const { prizes } = useSelector(EventDetailsStore.getEventDetails);
 
@@ -50,10 +52,10 @@ const Prizes = (props: PrizesProps) => {
           <Text size={Text.Sizes.SIZE_16}>
             <Anchor href={Routes.EVENT_PRIZES(eventId)}>Full prize list</Anchor>
           </Text>
-          {window.SWEEPSTAKES_URL && (
+          {SWEEPSTAKES_URL && (
             <React.Fragment>
               <Text size={Text.Sizes.SIZE_16}>
-                <Anchor href={window.SWEEPSTAKES_URL}>Official Rules</Anchor>
+                <Anchor href={SWEEPSTAKES_URL}>Official Rules</Anchor>
               </Text>
               <Text size={Text.Sizes.SIZE_16}>
                 No donation necessary for a chance to win. See sweepstakes rules for details and instructions.

@@ -1,26 +1,30 @@
 import os
 
-from tracker import ajax_lookup_channels
-
 DOMAIN = 'testserver'
 SECRET_KEY = 'ForTestingPurposesOnly'
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.staticfiles',
+    'channels',
     'post_office',
     'paypal.standard.ipn',
     'tracker',
     'timezone_field',
-    'ajax_select',
     'mptt',
 ]
 DATABASES = {
-    'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': 'testdb.sqlite',},
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'testdb.sqlite',
+        'OPTIONS': {'timeout': 5},
+    },
 }
+SILENCED_SYSTEM_CHECKS = ['models.W042']
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static')
 MEDIA_ROOT = os.path.join(os.path.dirname(__file__), 'media')
@@ -38,6 +42,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.media',
+                'django.template.context_processors.request',
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
@@ -55,7 +60,22 @@ MIDDLEWARE = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.common.CommonMiddleware',
 )
-AJAX_LOOKUP_CHANNELS = ajax_lookup_channels.AJAX_LOOKUP_CHANNELS
-CACHES = {'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache',}}
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
 ASGI_APPLICATION = 'tests.routing.application'
 CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}
+TEST_OUTPUT_DIR = 'test-results'
+
+TRACKER_SWEEPSTAKES_URL = 'https://example.com/sweepstakes'
+
+# uncomment this for some additional logging during testing
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {'console': {'level': 'DEBUG', 'class': 'logging.StreamHandler',},},
+#     'loggers': {'django': {'handlers': ['console'],},},
+#     'root': {'level': 'INFO'},
+# }

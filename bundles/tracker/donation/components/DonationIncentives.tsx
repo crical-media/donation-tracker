@@ -1,19 +1,22 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import _ from 'lodash';
 import classNames from 'classnames';
+import { useSelector } from 'react-redux';
 
-import Button from '../../../uikit/Button';
-import Clickable from '../../../uikit/Clickable';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
-import TextInput from '../../../uikit/TextInput';
-import useDispatch from '../../hooks/useDispatch';
-import { StoreState } from '../../Store';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import searchIncentives from '../../event_details/searchIncentives';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import Button from '@uikit/Button';
+import Clickable from '@uikit/Clickable';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
+import TextInput from '@uikit/TextInput';
+
+import * as DonationStore from '@tracker/donation/DonationStore';
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import searchIncentives from '@tracker/event_details/searchIncentives';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationActions from '../DonationActions';
-import * as DonationStore from '../../donation/DonationStore';
+import { Bid } from '../DonationTypes';
 import DonationBidForm from './DonationBidForm';
 import DonationBids from './DonationBids';
 
@@ -33,6 +36,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const [search, setSearch] = React.useState('');
   const [selectedIncentiveId, setSelectedIncentiveId] = React.useState<number | undefined>(undefined);
   const [showForm, setShowForm] = React.useState(false);
+  const setShowFormTrue = React.useCallback(() => setShowForm(true), []);
   const { bids, allocatedBidTotal, incentives } = useSelector((state: StoreState) => ({
     bids: DonationStore.getBids(state),
     allocatedBidTotal: DonationStore.getAllocatedBidTotal(state),
@@ -42,13 +46,15 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
   const canAddBid = total - allocatedBidTotal > 0;
 
   const handleSubmitBid = React.useCallback(
-    bid => {
+    (bid: Bid) => {
       setSelectedIncentiveId(undefined);
       dispatch(DonationActions.createBid(bid));
       setShowForm(false);
     },
     [dispatch],
   );
+
+  const selectIncentive = useCachedCallback(resultId => setSelectedIncentiveId(resultId), []);
 
   return (
     <div className={className}>
@@ -65,7 +71,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
                     [styles.resultSelected]: selectedIncentiveId === result.id,
                   })}
                   key={result.id}
-                  onClick={() => setSelectedIncentiveId(result.id)}
+                  onClick={selectIncentive(result.id)}
                   data-testid={`incentiveform-incentive-${result.id}`}>
                   <Header size={Header.Sizes.H5} marginless oneline>
                     {result.runname}
@@ -80,6 +86,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
 
           {selectedIncentiveId != null ? (
             <DonationBidForm
+              key={selectedIncentiveId} // reset the form if the incentive changes
               className={styles.right}
               incentiveId={selectedIncentiveId}
               step={step}
@@ -95,7 +102,7 @@ const DonationIncentives = (props: DonationIncentivesProps) => {
           disabled={!canAddBid}
           look={Button.Looks.OUTLINED}
           fullwidth
-          onClick={() => setShowForm(true)}
+          onClick={setShowFormTrue}
           data-testid="addincentives-button">
           {bids.length > 0 ? 'Add Another Incentive' : 'Add Incentives'}
         </Button>

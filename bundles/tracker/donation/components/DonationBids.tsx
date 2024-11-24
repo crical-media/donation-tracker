@@ -2,20 +2,23 @@ import * as React from 'react';
 import classNames from 'classnames';
 import { useSelector } from 'react-redux';
 
-import useDispatch from '../../hooks/useDispatch';
-import * as CurrencyUtils from '../../../public/util/currency';
-import { StoreState } from '../../Store';
-import Button from '../../../uikit/Button';
-import Header from '../../../uikit/Header';
-import Text from '../../../uikit/Text';
-import * as EventDetailsStore from '../../event_details/EventDetailsStore';
-import { Incentive } from '../../event_details/EventDetailsTypes';
+import { useCachedCallback } from '@public/hooks/useCachedCallback';
+import * as CurrencyUtils from '@public/util/currency';
+import Button from '@uikit/Button';
+import ErrorAlert from '@uikit/ErrorAlert';
+import Header from '@uikit/Header';
+import Text from '@uikit/Text';
+
+import * as EventDetailsStore from '@tracker/event_details/EventDetailsStore';
+import { Incentive } from '@tracker/event_details/EventDetailsTypes';
+import useDispatch from '@tracker/hooks/useDispatch';
+import { StoreState } from '@tracker/Store';
+
 import * as DonationActions from '../DonationActions';
 import * as DonationStore from '../DonationStore';
 import { Bid, BidFormErrors } from '../DonationTypes';
 
 import styles from './DonationBids.mod.css';
-import ErrorAlert from '../../../uikit/ErrorAlert';
 
 type BidItemProps = {
   bid: Bid;
@@ -75,7 +78,7 @@ const DonationBids = (props: DonationBidsProps) => {
     bidErrors: DonationStore.getBidsFormErrors(state),
   }));
 
-  const handleDeleteBid = React.useCallback(
+  const handleDeleteBid = useCachedCallback(
     incentiveId => {
       dispatch(DonationActions.deleteBid(incentiveId));
     },
@@ -93,11 +96,11 @@ const DonationBids = (props: DonationBidsProps) => {
               bid={bid}
               errors={bidErrors[i]}
               incentive={incentive}
-              onDelete={() => handleDeleteBid(bid.incentiveId)}
+              onDelete={handleDeleteBid(bid.incentiveId)}
             />
           );
         } else {
-          return <ErrorAlert errors={bidErrors[i].bid} />;
+          return <ErrorAlert key={`missing-${i}`} errors={bidErrors[i].bid} />;
         }
       })}
     </div>

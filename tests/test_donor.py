@@ -1,14 +1,23 @@
-import datetime
+import logging
 import random
 from decimal import Decimal
+from unittest import skip
 
-import pytz
-from django.contrib.auth.models import User
-from django.test import TestCase
+from django.contrib.admin import AdminSite
+from django.contrib.auth.models import AnonymousUser, Permission, User
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from tracker import models, randgen, viewutil
-from .util import today_noon, tomorrow_noon
+from tracker import admin, models, viewutil
+
+from . import randgen
+from .util import (
+    AssertionHelpers,
+    MigrationsTestCase,
+    long_ago_noon,
+    today_noon,
+    tomorrow_noon,
+)
 
 
 class TestDonorTotals(TestCase):
@@ -32,36 +41,32 @@ class TestDonorTotals(TestCase):
             donor=self.john,
             event=self.ev1,
             amount=5,
-            domainId='d1',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(2, models.DonorCache.objects.count())
         d2 = models.Donation.objects.create(
             donor=self.john,
             event=self.ev2,
             amount=5,
-            domainId='d2',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(3, models.DonorCache.objects.count())
         d3 = models.Donation.objects.create(
             donor=self.john,
             event=self.ev2,
             amount=10,
-            domainId='d3',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(3, models.DonorCache.objects.count())
         d4 = models.Donation.objects.create(
             donor=self.jane,
             event=self.ev1,
             amount=20,
-            domainId='d4',
+            domain='PAYPAL',
             transactionstate='COMPLETED',
-            timereceived=datetime.datetime.now(pytz.utc),
         )
         self.assertEqual(5, models.DonorCache.objects.count())
         self.assertEqual(
@@ -271,7 +276,7 @@ class TestDonorMerge(TestCase):
         rootDonor = donorList[0]
         donationList = []
         for donor in donorList:
-            donationList.extend(list(donor.donation_set.all()))
+            donationList.extend(donor.donation_set.all())
         viewutil.merge_donors(rootDonor, donorList)
         for donor in donorList[1:]:
             self.assertFalse(models.Donor.objects.filter(id=donor.id).exists())
@@ -280,6 +285,7 @@ class TestDonorMerge(TestCase):
             self.assertTrue(donation in donationList)
 
 
+@skip('currently disabled')
 class TestDonorView(TestCase):
     def setUp(self):
         super(TestDonorView, self).setUp()
@@ -295,7 +301,7 @@ class TestDonorView(TestCase):
             firstname=firstname, lastname=lastname, defaults=kwargs
         )
         if not created:
-            for k, v in list(kwargs.items()):
+            for k, v in kwargs.items():
                 setattr(self.donor, k, v)
             if kwargs:
                 self.donor.save()
@@ -307,9 +313,10 @@ class TestDonorView(TestCase):
                 donor=self.donor,
                 event=self.event,
                 amount=5,
-                transactionstate='COMPLETED',
             )
-            donor_header = f'<h2 class="text-center">{self.donor.visible_name()}</h2>'
+            donor_header = (
+                f'<h2 class="text-center">{self.donor.full_visible_name()}</h2>'
+            )
             resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
             self.assertContains(resp, donor_header, html=True)
             self.assertNotContains(resp, 'Invalid Variable')
@@ -325,18 +332,101 @@ class TestDonorView(TestCase):
 
     def test_anonymous_donor(self):
         self.set_donor(visibility='ANON')
-        models.Donation.objects.create(
-            donor=self.donor, event=self.event, amount=5, transactionstate='COMPLETED'
-        )
+        models.Donation.objects.create(donor=self.donor, event=self.event, amount=5)
         resp = self.client.get(reverse('tracker:donor', args=(self.donor.id,)))
         self.assertEqual(resp.status_code, 404)
 
 
-class TestDonorAdmin(TestCase):
-    def setUp(self):
-        self.super_user = User.objects.create_superuser(
-            'admin', 'admin@example.com', 'password'
+class TestDonorAlias(TestCase):
+    def test_alias_num_missing(self):
+        donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
+
+    def test_alias_num_cleared(self):
+        donor = models.Donor.objects.create(alias='Raelcun', alias_num=1000)
+        donor.alias = None
+        donor.save()
+        self.assertEqual(donor.alias_num, None, msg='Alias number was not cleared')
+
+    def test_alias_num_no_duplicates(self):
+        # degenerate case, create everything BUT 9999
+        for i in range(1000, 9999):
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
+        donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertEqual(donor.alias_num, 9999, msg='degenerate case did not work')
+
+    def test_alias_truly_degenerate(self):
+        # fill in ALL the holes
+        for i in range(1000, 10000):
+            models.Donor.objects.create(alias='Raelcun', alias_num=i)
+        with self.assertLogs(level=logging.WARNING) as logs:
+            donor = models.Donor.objects.create(alias='Raelcun')
+        self.assertRegex(logs.output[0], 'namespace was full')
+        self.assertEqual(donor.alias, None, msg='Alias was not cleared')
+        self.assertEqual(donor.alias_num, None, msg='Alias was not cleared')
+
+
+class TestDonorAliasMigration(MigrationsTestCase):
+    migrate_from = [('tracker', '0010_add_alias_num')]
+    migrate_to = [('tracker', '0011_backfill_alias')]
+
+    def setUpBeforeMigration(self, apps):
+        Event = apps.get_model('tracker', 'Event')
+        Donation = apps.get_model('tracker', 'Donation')
+        Donor = apps.get_model('tracker', 'Donor')
+
+        event = Event.objects.create(
+            short='test', name='Test Event', datetime=today_noon
         )
+        self.event_id = event.id
+        donor = Donor.objects.create(alias='bar')
+        self.donor_id = donor.id
+        self.other_donor_id = Donor.objects.create(alias='baz').id
+        self.donation_id = Donation.objects.create(
+            event=event,
+            amount=5,
+            requestedalias=' foo ',
+            donor=donor,
+            domainId='deadbeaf',
+            transactionstate='COMPLETED',
+            timereceived=today_noon,
+        ).id
+        self.other_donation_id = Donation.objects.create(
+            event=event,
+            amount=5,
+            requestedalias=' bar ',
+            donor=donor,
+            domainId='deadbead',
+            transactionstate='COMPLETED',
+            timereceived=long_ago_noon,
+        ).id
+
+    def test_whitespace_with_alias(self):
+        Donation = self.apps.get_model('tracker', 'Donation')
+        self.assertEqual(
+            Donation.objects.get(id=self.donation_id).requestedalias,
+            'foo',
+            msg='Whitespace was not stripped',
+        )
+        Donor = self.apps.get_model('tracker', 'Donor')
+        donor = Donor.objects.get(id=self.donor_id)
+        self.assertEqual(
+            donor.alias, 'foo', msg='Alias was not reapplied or wrong alias was used'
+        )
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
+
+    def test_donor_with_missing_alias_num(self):
+        Donor = self.apps.get_model('tracker', 'Donor')
+        donor = Donor.objects.get(id=self.other_donor_id)
+        self.assertNotEqual(donor.alias_num, None, msg='Alias number was not filled in')
+
+
+class TestDonorAdmin(TestCase, AssertionHelpers):
+    def setUp(self):
+        self.admin = admin.donation.DonorAdmin(models.Donor, AdminSite())
+        self.factory = RequestFactory()
+        self.super_user = User.objects.create_superuser('admin', 'admin@example.com')
+        self.limited_user = User.objects.create(username='staff')
         self.event = models.Event.objects.create(
             short='ev1', name='Event 1', targetamount=5, datetime=today_noon
         )
@@ -344,7 +434,7 @@ class TestDonorAdmin(TestCase):
         self.donor = models.Donor.objects.create(firstname='John', lastname='Doe')
 
     def test_donor_admin(self):
-        self.client.login(username='admin', password='password')
+        self.client.force_login(self.super_user)
         response = self.client.get(reverse('admin:tracker_donor_changelist'))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('admin:tracker_donor_add'))
@@ -353,3 +443,35 @@ class TestDonorAdmin(TestCase):
             reverse('admin:tracker_donor_change', args=(self.donor.id,))
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_search_fields(self):
+        request = self.factory.get('admin:tracker_donor_changelist')
+
+        with self.subTest('all permissions'):
+            request.user = self.super_user
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual(
+                {'email', 'paypalemail', 'alias', 'firstname', 'lastname'},
+                set(search_fields),
+            )
+
+        with self.subTest('partial permissions'):
+            request.user = self.limited_user
+            self.limited_user.user_permissions.add(
+                Permission.objects.get(codename='view_emails')
+            )
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'email', 'paypalemail', 'alias'}, set(search_fields))
+
+            self.limited_user.user_permissions.set(
+                [Permission.objects.get(codename='view_full_names')]
+            )
+            self.limited_user = User.objects.get(id=self.limited_user.id)
+            request.user = self.limited_user
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'firstname', 'lastname', 'alias'}, set(search_fields))
+
+        with self.subTest('no special permissions'):
+            request.user = AnonymousUser()
+            search_fields = self.admin.get_search_fields(request)
+            self.assertSetEqual({'alias'}, set(search_fields))

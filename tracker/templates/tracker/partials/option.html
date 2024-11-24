@@ -1,0 +1,67 @@
+{% load donation_tags %}
+{% load i18n %}
+
+<tr class="small">
+    <td>
+        {% if chained %}
+          {{ bid.name }}
+        {% else %}
+          <a href="{% url 'tracker:bid' pk=bid.id %}">
+            {{ bid.name }}
+          </a>
+        {% endif %}
+        {% if bid.children %}
+            <button id="bidOptionShow-{{ bid.id }}"
+                    onclick="
+                            $('#bidOptionShow-{{ bid.id }}').hide();
+                            $('#bidOptionHide-{{ bid.id }}').show();
+                            $('#bidOptionData-{{ bid.id }}').show();
+                            ">
+                Show Options
+            </button>
+            <button style="display:none" id="bidOptionHide-{{ bid.id }}"
+                    onclick="
+                            $('#bidOptionShow-{{ bid.id }}').show();
+                            $('#bidOptionHide-{{ bid.id }}').hide();
+                            $('#bidOptionData-{{ bid.id }}').hide();
+                            ">
+                Hide Options
+            </button>
+        {% endif %}
+    </td>
+    {% if not hiderun %}
+        <td>
+            {{ bid.speedrun|default:'&mdash;' }}
+        </td>
+    {% endif %}
+    <td>
+        {{ bid.description }}
+    </td>
+    <td>
+        {% if bid.chain %}
+          {{ bid.chain_total | money }}
+        {% else %}
+          {{ bid.total | money }}
+        {% endif %}
+    </td>
+    {% if not hidegoal %}
+      <td>
+          {% if bid.chain %}
+              {{ bid.chain_goal | money }}
+          {% elif bid.goal %}
+              {{ bid.goal | money }}
+          {% else %}
+              &mdash;
+          {% endif %}
+      </td>
+    {% endif %}
+</tr>
+
+{% if bid.children %}
+    <tr style="display:none" id="bidOptionData-{{ bid.id }}">
+        <td colspan="6">
+            {% include 'tracker/partials/optionstable.html' with bid=bid only %}
+        </td>
+    </tr>
+    <tr style="display:none"></tr>
+{% endif %}

@@ -1,12 +1,33 @@
 *.mo
+.python-version
 *.pyc
 *.swp
 *.sqlite
+*.sqlite3
 build
 *.egg-info
 .webpack_build_cache/
 *.manifest.json
 node_modules/
-static/gen/
+dist/
+tracker/static/gen/
+tracker/templates/ui/generated/
+geckodriver.log
+test-results
+tests/_trial_temp
+tests/media
+tests/snapshots
+
+# Yarn files for projects not using zero-installs,
+# taken from https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored.
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 yarn-error.log
-TEST*.xml
+
+# macOS generated configuration files for Finder.
+*.DS_Store

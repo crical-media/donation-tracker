@@ -1,5 +1,6 @@
-import Cookies from './cookies';
 import queryString from 'query-string';
+
+import Cookies from './cookies';
 
 export const Encoders = {
   JSON: {
@@ -21,6 +22,11 @@ function checkStatus(response: Response) {
 }
 
 function parseJSON(response: Response) {
+  // This is a bit of a cop-out, but will be replaced by axios in the future.
+  // We only use 204 when there's no body content, so parsing is meaningless
+  // and will crash otherwise.
+  if (response.status === 204) return Promise.resolve({});
+
   return response.json();
 }
 
@@ -44,7 +50,7 @@ type GetOptions = {
   headers?: { [header: string]: any };
 };
 
-export const get = (url: string, queryParams: object, opts: GetOptions = {}) => {
+export const get = (url: string, queryParams?: object, opts: GetOptions = {}) => {
   const { headers } = opts;
   const query = queryParams ? '?' + queryString.stringify(queryParams) : '';
 
@@ -61,7 +67,7 @@ export const get = (url: string, queryParams: object, opts: GetOptions = {}) => 
 
 type PostOptions = {
   headers?: { [header: string]: any };
-  encoder?: typeof Encoders[keyof typeof Encoders];
+  encoder?: (typeof Encoders)[keyof typeof Encoders];
 };
 
 export const post = (url: string, data: object, opts: PostOptions = {}) => {
@@ -80,8 +86,25 @@ export const post = (url: string, data: object, opts: PostOptions = {}) => {
     .then(parseJSON);
 };
 
+export const patch = (url: string, data: object, opts: PostOptions = {}) => {
+  const { headers, encoder = Encoders.JSON } = opts;
+
+  return fetch(url, {
+    method: 'PATCH',
+    headers: {
+      ...getDefaultHeaders('PATCH'),
+      'Content-Type': encoder.contentType,
+      ...headers,
+    },
+    body: encoder.module.stringify(data),
+  })
+    .then(checkStatus)
+    .then(parseJSON);
+};
+
 export default {
   get,
   post,
+  patch,
   Encoders,
 };

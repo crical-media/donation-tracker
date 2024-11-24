@@ -1,6 +1,6 @@
-import { createStore, applyMiddleware, combineReducers } from 'redux';
-import { composeWithDevTools } from 'redux-devtools-extension';
+import { applyMiddleware, combineReducers, createStore } from 'redux';
 import thunk from 'redux-thunk';
+import { composeWithDevTools } from '@redux-devtools/extension';
 
 import DonationReducer from './donation/DonationReducer';
 import EventDetailsReducer from './event_details/EventDetailsReducer';
@@ -21,4 +21,6 @@ const composeEnhancers = composeWithDevTools({
   // trace: true,
 });
 
-export const store = createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));
+export function createTrackerStore() {
+  return createStore(combinedReducer, composeEnhancers(applyMiddleware(thunk)));
+}

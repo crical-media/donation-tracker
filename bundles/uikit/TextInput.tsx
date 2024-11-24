@@ -12,7 +12,7 @@ const TextInputTypes = {
 };
 
 type TextInputProps = InputWrapperPassthroughProps & {
-  type?: typeof TextInputTypes[keyof typeof TextInputTypes];
+  type?: (typeof TextInputTypes)[keyof typeof TextInputTypes];
   value?: string;
   placeholder?: string;
   multiline?: boolean;
@@ -48,10 +48,11 @@ const TextInput = (props: TextInputProps) => {
   const usedLength = value ? value.length : 0;
   const invalidLength = maxLength != null && usedLength >= maxLength;
 
-  const handleChange = React.useCallback(e => (onChange != null ? onChange(e.target.value, name) : false), [
-    name,
-    onChange,
-  ]);
+  const handleChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      onChange != null ? onChange(e.target.value, name) : false,
+    [name, onChange],
+  );
 
   return (
     <InputWrapper

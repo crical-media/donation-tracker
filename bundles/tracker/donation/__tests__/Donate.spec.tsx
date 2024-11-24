@@ -1,12 +1,19 @@
 import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
-import { createStore, fireEvent, render } from '../../testing/test-utils';
 
-import * as EventDetailsActions from '../../event_details/EventDetailsActions';
+import * as EventDetailsActions from '@tracker/event_details/EventDetailsActions';
+import { createStore, fireEvent, render } from '@tracker/testing/test-utils';
+
 import Donate from '../components/Donate';
 
 const renderDonate = (store?: ReturnType<typeof createStore>) => {
-  const rendered = render(<Donate eventId="some-event" />, { store });
+  const rendered = render(
+    <MemoryRouter>
+      <Donate eventId="some-event" />
+    </MemoryRouter>,
+    { store },
+  );
   const getAddIncentivesButton = () => rendered.getByTestId('addincentives-button') as HTMLButtonElement;
   const getSubmitButton = () => rendered.getByTestId('donation-submit') as HTMLButtonElement;
   const getSubmitBidButton = () => rendered.getByTestId('incentiveBidForm-submitBid') as HTMLButtonElement;

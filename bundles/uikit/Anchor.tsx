@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import classNames from 'classnames';
+import { Link } from 'react-router-dom';
 
 import styles from './Anchor.mod.css';
 
 type AnchorProps = {
-  href: string;
+  href?: string;
   target?: string;
   rel?: string;
   className?: string;
@@ -13,7 +13,7 @@ type AnchorProps = {
 };
 
 const Anchor = (props: AnchorProps) => {
-  const { children, className, href, ...linkProps } = props;
+  const { children, className, href = '', ...linkProps } = props;
 
   const isLocal = !/(?:^[a-z][a-z0-9+.-]*:|\/\/)/.test(href);
 

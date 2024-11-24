@@ -1,7 +1,10 @@
 import * as React from 'react';
-import PrizeCard from './PrizeCard';
-import { mockState, mountWithState } from '../../../../spec/Suite';
+import { MemoryRouter } from 'react-router-dom';
+import { fireEvent } from '@testing-library/react';
+
 import { getFixturePrize } from '../../../../spec/fixtures/Prize';
+import { mockState, renderWithState } from '../../../../spec/Suite';
+import PrizeCard from './PrizeCard';
 
 describe('PrizeCard', () => {
   let subject;
@@ -13,10 +16,9 @@ describe('PrizeCard', () => {
   it('displays "No Image Found" if an error occurs while loading the image', () => {
     subject = render();
 
-    subject.find('img').simulate('error');
-    subject.update();
-    expect(subject.find('img')).not.toExist();
-    expect(subject.text()).toContain('No Image Provided');
+    fireEvent.error(subject.queryByRole('img')!);
+    expect(subject.queryByRole('img')).toBeNull();
+    expect(subject.getByText('No Image Provided')).not.toBeNull();
   });
 
   function render(props = {}) {
@@ -24,6 +26,10 @@ describe('PrizeCard', () => {
       prizeId: '123',
     };
 
-    return mountWithState(<PrizeCard {...defaultProps} {...props} />);
+    return renderWithState(
+      <MemoryRouter>
+        <PrizeCard {...defaultProps} {...props} />
+      </MemoryRouter>,
+    );
   }
 });

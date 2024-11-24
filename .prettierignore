@@ -1,2 +1,5 @@
 node_modules/
-static/
+tracker/static/
+# Prettier doesn't understand Jinja templates, so formatting these
+# results in minification.
+tracker/templates/

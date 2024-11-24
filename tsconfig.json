@@ -4,12 +4,23 @@
     "allowSyntheticDefaultImports": true,
     "checkJs": false,
     "jsx": "preserve",
-    "module": "commonjs",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "target": "esnext",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": "./bundles",
+    "paths": {
+      "@admin/*": ["./admin/*"],
+      "@common/*": ["./common/*"],
+      "@processing/*": ["./processing/*"],
+      "@public/*": ["./public/*"],
+      "@tracker/*": ["./tracker/*"],
+      "@uikit/*": ["./uikit/*"]
+    }
   },
   "include": ["./bundles/**/*"]
 }

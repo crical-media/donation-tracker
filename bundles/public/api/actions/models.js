@@ -1,5 +1,7 @@
 import _ from 'lodash';
 
+import Endpoints from '@tracker/Endpoints';
+
 import HTTPUtil from '../../util/http';
 
 function onModelStatusLoad(model) {
@@ -49,25 +51,32 @@ function onModelCollectionRemove(model, models) {
 }
 
 // TODO: Better solution than this
-const modelTypeMap = {
+const fetchMap = {
   speedrun: 'run',
 };
 
+// TODO: I hate this
+const reverseMap = {
+  allbids: 'bid',
+  bidtarget: 'bid',
+};
+
 function loadModels(model, params, additive) {
+  const fetchModel = fetchMap[model] || model;
+  const realModel = reverseMap[model] || model;
   return dispatch => {
     dispatch(onModelStatusLoad(model));
-    return HTTPUtil.get(`${API_ROOT}search`, {
+    return HTTPUtil.get(Endpoints.SEARCH, {
       ...params,
-      type: modelTypeMap[model] || model,
+      type: fetchModel,
     })
       .then(models => {
-        dispatch(onModelStatusSuccess(model));
         const action = additive ? onModelCollectionAdd : onModelCollectionReplace;
         dispatch(
           action(
-            model,
+            realModel,
             models.reduce((acc, v) => {
-              if (v.model.toLowerCase() === `tracker.${model}`.toLowerCase()) {
+              if (v.model.toLowerCase() === `tracker.${realModel}`.toLowerCase()) {
                 v.fields.pk = v.pk;
                 acc.push(v.fields);
               }
@@ -75,12 +84,13 @@ function loadModels(model, params, additive) {
             }, []),
           ),
         );
+        dispatch(onModelStatusSuccess(model));
       })
       .catch(error => {
-        dispatch(onModelStatusError(model));
         if (!additive) {
-          dispatch(onModelCollectionReplace(model, []));
+          dispatch(onModelCollectionReplace(realModel, []));
         }
+        dispatch(onModelStatusError(model));
       });
   };
 }
@@ -94,6 +104,7 @@ function onNewDraftModel(model) {
 
 function newDraftModel(model) {
   return dispatch => {
+    dispatch(onSetInternalModelField(model.type, model.pk, 'errors', null));
     dispatch(onNewDraftModel(model));
   };
 }
@@ -154,14 +165,14 @@ function onSaveDraftModelError(model, error, fields) {
 
 function saveDraftModels(models) {
   return dispatch => {
-    _.each(models, model => {
+    models.forEach(model => {
       dispatch(setInternalModelField(model.type, model.pk, 'saving', true));
-      const url = model.pk < 0 ? `${API_ROOT}add/` : `${API_ROOT}edit/`;
+      const url = model.pk < 0 ? Endpoints.ADD : Endpoints.EDIT;
 
       HTTPUtil.post(
         url,
         {
-          type: modelTypeMap[model.type] || model.type,
+          type: fetchMap[model.type] || model.type,
           id: model.pk,
           ..._.omit(model.fields, (v, k) => k.startsWith('_')),
         },
@@ -182,9 +193,13 @@ function saveDraftModels(models) {
           dispatch(onModelCollectionAdd(model.type, models));
           dispatch(onDeleteDraftModel(model));
         })
-        .catch(response => {
-          const json = response.json();
-          dispatch(onSaveDraftModelError(model, json ? json.error : response.body(), json ? json.fields : {}));
+        .catch(async response => {
+          try {
+            const json = await response.json();
+            dispatch(onSaveDraftModelError(model, json.error, json.message_dict || { __all__: json.messages }));
+          } catch (e) {
+            dispatch(onSaveDraftModelError(model, await response.body()));
+          }
         })
         .finally(() => {
           dispatch(setInternalModelField(model.type, model.pk, 'saving', false));
@@ -201,9 +216,9 @@ function saveField(model, field, value) {
         value = 'None';
       }
       HTTPUtil.post(
-        `${API_ROOT}edit/`,
+        Endpoints.EDIT,
         {
-          type: modelTypeMap[model.type] || model.type,
+          type: fetchMap[model.type] || model.type,
           id: model.pk,
           [field]: value,
         },
@@ -241,7 +256,7 @@ function saveField(model, field, value) {
 function command(command) {
   return dispatch => {
     return HTTPUtil.post(
-      `${API_ROOT}command/`,
+      Endpoints.COMMAND,
       {
         data: JSON.stringify({
           command: command.type,
@@ -275,9 +290,9 @@ function command(command) {
           command.done();
         }
       })
-      .catch(() => {
+      .catch(e => {
         if (typeof command.fail === 'function') {
-          command.fail();
+          e.json().then(json => command.fail(json));
         }
       })
       .finally(() => {

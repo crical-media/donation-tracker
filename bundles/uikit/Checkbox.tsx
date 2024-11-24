@@ -28,14 +28,14 @@ const CheckboxHeader = (props: CheckboxHeaderProps) => {
 };
 
 type CheckboxProps = {
-  look?: typeof CheckboxLooks[keyof typeof CheckboxLooks];
+  look?: (typeof CheckboxLooks)[keyof typeof CheckboxLooks];
   label?: React.ReactNode;
   name?: string;
   checked: boolean;
   disabled?: boolean;
   className?: string;
   contentClassName?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onChange: (checked: boolean) => void;
 };
 
@@ -54,7 +54,7 @@ const Checkbox = (props: CheckboxProps) => {
 
   const handleClick = React.useCallback(() => {
     onChange(!checked);
-  }, [checked]);
+  }, [checked, onChange]);
 
   return (
     <Clickable

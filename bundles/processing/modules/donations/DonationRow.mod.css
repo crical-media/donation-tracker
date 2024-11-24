@@ -1,0 +1,77 @@
+.container {
+  position: relative;
+  margin: 16px 0;
+  background-color: var(--background-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border-primary);
+
+  &:hover {
+    box-shadow: 0 1px 16px var(--background-shadow);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--status-accent-background);
+  }
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  background-color: var(--background-primary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.headerTop {
+  padding: 8px;
+}
+
+.bids {
+  background-color: var(--background-tertiary);
+  border-top: var(--border-subtle);
+  padding: 4px 8px;
+}
+
+.comment {
+  background-color: var(--background-secondary);
+  padding: 8px;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.noCommentHint {
+  text-align: center;
+}
+
+.dragging {
+  opacity: 0.6;
+}
+
+.emptyDropTarget {
+  position: relative;
+  display: block;
+  height: 64px;
+}
+
+.dropIndicator {
+  display: none;
+  position: absolute;
+  top: -8px;
+  width: 100%;
+  border: 2px solid var(--status-success-background);
+  border-radius: 100px;
+}
+
+.isDropOver {
+  & .dropIndicator {
+    display: block;
+  }
+}
+
+.dragHandle {
+  flex: 0 0 auto;
+  cursor: grab;
+}

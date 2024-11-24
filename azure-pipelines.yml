@@ -1,5 +1,6 @@
 trigger:
   - master
+  - gh-readonly-queue/master/*
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -10,13 +11,30 @@ jobs:
     displayName: Tracker Backend
     strategy:
       matrix:
-        Python36:
-          PYTHON_VERSION: '3.6'
-        Python37:
-          PYTHON_VERSION: '3.7'
-
-    variables:
-      TOPLEVEL_REVISION: e170b3970c805b4b0c9cb9167c57c78d62f27dd5
+        Oldest:
+          PYTHON_VERSION: '3.8'
+          DJANGO_VERSION: '4.2'
+        Django42:
+          PYTHON_VERSION: '3.12'
+          DJANGO_VERSION: '4.2'
+        Django50:
+          PYTHON_VERSION: '3.12'
+          DJANGO_VERSION: '5.0'
+        Python38:
+          PYTHON_VERSION: '3.8'
+          DJANGO_VERSION: '4.2'
+        Python39:
+          PYTHON_VERSION: '3.9'
+          DJANGO_VERSION: '4.2'
+        Python3A:
+          PYTHON_VERSION: '3.10'
+          DJANGO_VERSION: '5.1'
+        Python3B:
+          PYTHON_VERSION: '3.11'
+          DJANGO_VERSION: '5.1'
+        Latest:
+          PYTHON_VERSION: '3.12'
+          DJANGO_VERSION: '5.1'
 
     steps:
       - task: UsePythonVersion@0
@@ -24,73 +42,119 @@ jobs:
           versionSpec: '$(PYTHON_VERSION)'
           architecture: 'x64'
 
-      - script: |
-          mv -v $(Build.SourcesDirectory) $(Agent.BuildDirectory)/tracker
-          git clone git://github.com/GamesDoneQuick/donation-tracker-toplevel $(Build.SourcesDirectory)
-          cd $(Build.SourcesDirectory)
-          git reset --hard $(TOPLEVEL_REVISION)
-          mv -v $(Agent.BuildDirectory)/tracker $(Build.SourcesDirectory)
-          cp -v tracker/ci/.env.ci $(Build.SourcesDirectory)/.env
-        displayName: 'Install toplevel around the tracker'
-
-      - task: PythonScript@0
-        displayName: 'Export project path'
+      - task: NodeTool@0
         inputs:
-          scriptSource: 'inline'
-          script: |
-            """Search all subdirectories for `manage.py`."""
-            from glob import iglob
-            from os import path
-            manage_py = next(iglob(path.join('**', 'manage.py'), recursive=True), None)
-            if not manage_py:
-                raise SystemExit('Could not find a Django project')
-            project_location = path.dirname(path.abspath(manage_py))
-            print('Found Django project in', project_location)
-            print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
+          versionSpec: '22'
 
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
-          key: pip | $(Agent.OS) | tracker/requirements.txt
+          key: pip | $(Agent.OS) | "$(DJANGO_VERSION)" | tests/requirements.txt | setup.py
           path: $(Pipeline.Workspace)/../../.cache/pip
         displayName: 'Cache pip'
 
-      - script: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-          pip install -r tracker/tests/requirements.txt
-        displayName: 'Install python prerequisites'
-
-      - task: CacheBeta@1
+      - task: Cache@2
         inputs:
-          key: yarn | $(Agent.OS) | tracker/yarn.lock
-          path: $(Build.SourcesDirectory)/tracker/node_modules
+          key: yarn | $(Agent.OS) | production | yarn.lock
+          path: $(Build.SourcesDirectory)/.yarn
         displayName: 'Cache yarn'
 
       - script: |
-          cd tracker
-          yarn install --frozen-lockfile
-        displayName: 'Install node prerequisites'
+          python -m pip install --upgrade pip setuptools wheel
+        displayName: 'Install Python base packages'
 
       - script: |
-          cd tracker
+          pip install . -r tests/requirements.txt django~=${DJANGO_VERSION}
+        displayName: 'Install Python prerequisites'
+
+      - script: |
           python check_migrations.py
         displayName: 'Check for bad or missing migrations'
 
       - script: |
-          cd tracker
-          yarn build
-        displayName: 'Generate webpack manifest'
+          python listperms.py --validate
+        displayName: 'Check for changed permissions list'
 
       - script: |
-          cd tracker
-          python runtests.py --parallel --no-input
+          python runtests.py --no-input --parallel 8
         displayName: 'Run Django tests'
 
       - task: PublishTestResults@2
         inputs:
-          testResultsFiles: '**/TEST-*.xml'
+          testResultsFiles: 'test-results/TEST-*.xml'
           testRunTitle: 'Python $(PYTHON_VERSION)'
         condition: succeededOrFailed()
+
+  - job: build_package
+    displayName: Tracker Package
+    condition: >
+      not(
+        or(
+          eq(variables['Build.SourceBranch'], 'refs/heads/master'),
+          startsWith(variables['Build.SourceBranchName'], 'spike'),
+          eq(variables['System.PullRequest.IsFork'], 'True')
+        )
+      )
+    steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '22'
+
+      - task: Cache@2
+        inputs:
+          key: pip | $(Agent.OS) | setup.py
+          path: $(Pipeline.Workspace)/../../.cache/pip
+        displayName: 'Cache pip'
+
+      - task: Cache@2
+        inputs:
+          key: yarn | $(Agent.OS) | production | yarn.lock
+          path: $(Build.SourcesDirectory)/.yarn
+        displayName: 'Cache yarn'
+
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel twine
+          python setup.py package
+        displayName: 'Build Package'
+        env:
+          PACKAGE_NAME_SUFFIX: $(Build.SourceVersion)
+
+      - task: TwineAuthenticate@1
+        inputs:
+          artifactFeed: donation-tracker/donation-tracker-packages
+
+      - script: |
+          python -m twine upload -r donation-tracker-packages --config-file $(PYPIRC_PATH) dist/*.whl
+        displayName: Upload Package Artifact
+
+  - job: precommit_check
+    displayName: Run pre-commit hooks
+    steps:
+      - task: Cache@2
+        inputs:
+          key: pip | $(Agent.OS) | precommit | setup.py
+          path: $(Pipeline.Workspace)/../../.cache/pip
+        displayName: 'Cache pip'
+
+      - task: Cache@2
+        inputs:
+          key: pre-commit | .pre-commit-config.yaml
+          path: $(Pipeline.Workspace)/../../.cache/pre-commit
+        displayName: 'Cache pre-commit'
+
+      - task: Cache@2
+        inputs:
+          key: yarn | $(Agent.OS) | development | yarn.lock
+          path: $(Build.SourcesDirectory)/.yarn
+        displayName: 'Cache yarn'
+
+      - script: |
+          python -m pip install --upgrade pip setuptools wheel pre-commit
+          ss=0
+          yarn --immutable || ss=1
+          pre-commit run --all || ss=1
+          pre-commit run --hook-stage push --all || ss=1
+          exit $ss
+        displayName: 'Run pre-commit hooks'
 
   - job: tracker_frontend_tests
     dependsOn: []
@@ -98,28 +162,31 @@ jobs:
     continueOnError: true
     variables:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
+    strategy:
+      matrix:
+        Node18:
+          NODE_VERSION: 18
+        Node20:
+          NODE_VERSION: 20
+        Node22:
+          NODE_VERSION: 22
 
     steps:
+      - task: NodeTool@0
+        inputs:
+          versionSpec: '$(NODE_VERSION)'
+
       - task: Cache@2
         inputs:
-          key: yarn | $(Agent.OS) | yarn.lock
+          key: yarn | $(Agent.OS) | "$(NODE_VERSION)" | development | yarn.lock
           path: $(YARN_CACHE_FOLDER)
         displayName: 'Cache yarn'
 
-      - script: yarn --frozen-lockfile
+      - script: yarn --immutable
         displayName: 'yarn install'
 
       - script: yarn build
         displayName: 'build'
-
-      - script: yarn prettier
-        displayName: 'Formatting (prettier)'
-
-      - script: yarn tsc
-        displayName: 'Typechecking (typescript)'
-
-      - script: yarn lint
-        displayName: 'Linting (eslint)'
 
       - script: yarn test
         displayName: 'tests (Karma)'

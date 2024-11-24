@@ -2,7 +2,9 @@ import re
 
 from django.test import TestCase
 
-import tracker.util as util
+from tracker import models, util
+
+from .util import today_noon
 
 
 class TestRandomNumReplace(TestCase):
@@ -47,3 +49,33 @@ class TestRandomNumReplace(TestCase):
         maxLen = 7
         with self.assertRaises(Exception):
             util.random_num_replace(original, replaceLen, max_length=maxLen)
+
+
+class TestUtil(TestCase):
+    def test_median(self):
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 0)
+        event = models.Event.objects.create(datetime=today_noon)
+        for i in [2, 3, 5, 8, 13]:
+            models.Donation.objects.create(event=event, amount=i)
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 5)
+        models.Donation.objects.create(event=event, amount=21)
+        self.assertEqual(util.median(models.Donation.objects.all(), 'amount'), 6.5)
+
+    def test_flatten(self):
+        self.assertSequenceEqual(
+            list(util.flatten(['string', [1, 2, 'also_string', [3, 4, 5]]])),
+            ['string', 1, 2, 'also_string', 3, 4, 5],
+        )
+
+    def test_flatten_dict_values(self):
+        self.assertSetEqual(
+            set(
+                util.flatten_dict(
+                    {
+                        'root': {'leaf1': 'foo', 'leaf2': ['bar', 'baz']},
+                        'branch': 'quux',
+                    }
+                )
+            ),
+            {'foo', 'bar', 'baz', 'quux'},
+        )

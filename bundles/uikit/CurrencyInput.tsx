@@ -39,10 +39,10 @@ const CurrencyInput = (props: CurrencyInputProps) => {
   const hasMax = max == null || max === Infinity;
 
   const handleChange = React.useCallback(
-    (_event, value) => {
+    (_event: React.SyntheticEvent, value: number) => {
       onChange != null && onChange(value, name);
     },
-    [name, value, onChange],
+    [name, onChange],
   );
 
   return (
