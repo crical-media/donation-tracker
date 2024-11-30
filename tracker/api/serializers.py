@@ -647,6 +647,7 @@ class EventSerializer(PrimaryOrNaturalKeyLookup, TrackerModelSerializer):
             'datetime',
             'timezone',
             'use_one_step_screening',
+            'paypalcurrency',
             # 'allowed_prize_countries',
             # 'disallowed_prize_regions',
         )

@@ -3,7 +3,7 @@ from itertools import groupby
 
 from django.conf import settings
 from django.urls import re_path
-from django.conf.urls import url
+#from django.conf.urls import url
 from django.contrib import admin, messages
 from django.contrib.admin import register
 from django.contrib.auth.decorators import permission_required
@@ -22,7 +22,7 @@ from .util import (
     CustomModelAdmin,
     EventLockedMixin,
     RelatedUserMixin,
-    latest_event_id,
+#    latest_event_id,
     mass_assign_action,
 )
 
@@ -661,11 +661,11 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                 self.admin_site.admin_view(self.automail_prize_contributors),
                 name='automail_prize_contributors',
             ),
-            re_path(
-                'draw_prize_winners',
-                self.admin_site.admin_view(self.draw_prize_winners),
-                name='draw_prize_winners',
-            ),
+#            re_path(
+#                'draw_prize_winners',
+#                self.admin_site.admin_view(self.draw_prize_winners),
+#                name='draw_prize_winners',
+#            ),
             re_path(
                 r'prize_key_import/(?P<prize>\d+)',
                 self.admin_site.admin_view(self.prize_key_import),
@@ -691,16 +691,16 @@ class PrizeAdmin(EventLockedMixin, RelatedUserMixin, CustomModelAdmin):
                 self.admin_site.admin_view(self.automail_prize_shipping_notifications),
                 name='automail_prize_shipping_notifications',
             ),
-            re_path(
-                'process_prize_submissions',
-                self.admin_site.admin_view(self.process_prize_submissions),
-                name='process_prize_submissions',
-            ),
+#            re_path(
+#                'process_prize_submissions',
+#                self.admin_site.admin_view(self.process_prize_submissions),
+#                name='process_prize_submissions',
+#            ),
         ]
 
     def get_changeform_initial_data(self, request):
         return super().get_changeform_initial_data(request) | {
-            "event": latest_event_id
+            "event": event
         }
 
 

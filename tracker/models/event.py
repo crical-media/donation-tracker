@@ -32,7 +32,7 @@ __all__ = [
     'VideoLinkType',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'), ('EUR', 'Euro'), ('NOK', 'Norwegian Kroner'))
 
 
 logger = logging.getLogger(__name__)
@@ -143,10 +143,10 @@ class Event(models.Model):
         null=True,
         help_text='Leave blank to turn off auto-approval behavior. If set, anonymous, no-comment donations at or above this amount get sent to the reader. Below this amount, they are ignored.',
     )
-    paypalemail = models.EmailField(
+    paypalemail = models.EmailField( #FIXME PaymentAbstraction; receiver id?
         max_length=128, null=False, blank=False, verbose_name='Receiver Paypal'
     )
-    paypalcurrency = models.CharField(
+    paypalcurrency = models.CharField( #FIXME PaymentAbstraction
         max_length=8,
         null=False,
         blank=False,
@@ -154,7 +154,7 @@ class Event(models.Model):
         choices=_currencyChoices,
         verbose_name='Currency',
     )
-    paypalimgurl = models.CharField(
+    paypalimgurl = models.CharField( #FIXME PaymentAbstraction
         max_length=1024,
         null=False,
         blank=True,
@@ -589,7 +589,7 @@ class SpeedRun(models.Model):
 
     class Meta:
         app_label = 'tracker'
-        verbose_name = 'Speed Run'
+        verbose_name = 'Speedrun'
         unique_together = (('name', 'category', 'event'), ('event', 'order'))
         ordering = ['event__datetime', 'order']
         permissions = (('can_view_tech_notes', 'Can view tech notes'),)
@@ -838,7 +838,7 @@ class Talent(models.Model):
         ),
         help_text='Streaming Platforms',
     )
-    pronouns = models.CharField(max_length=20, blank=True, help_text='They/Them')
+    pronouns = models.CharField(max_length=20, blank=True)
     donor = models.OneToOneField(
         'tracker.Donor', blank=True, null=True, on_delete=models.SET_NULL
     )

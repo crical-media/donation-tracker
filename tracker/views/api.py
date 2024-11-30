@@ -53,8 +53,7 @@ from tracker.models import (
     Prize,
     SpeedRun,
     Tag,
-    Talent,
-    Runner
+    Talent
 )
 from tracker.search_filters import EventAggregateFilter, PrizeWinnersFilter
 from tracker.serializers import TrackerSerializer

@@ -13,13 +13,13 @@ from django.utils.html import format_html
 from tracker import forms, logutil, models, search_filters, settings, util, viewutil
 
 from .filters import DonationListFilter
-from .inlines import DonationBidInline, DonationInline
+from .inlines import DonationBidInline #, DonationInline
 from .util import (
     CustomModelAdmin,
     EventLockedMixin,
     EventReadOnlyMixin,
     RelatedUserMixin,
-    latest_event_id,
+#    latest_event_id,
     mass_assign_action,
 )
 
@@ -50,7 +50,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
         'modcomment',
     )
     autocomplete_fields = ('donor', 'event')
-    list_editable = ('transactionstate', 'bidstate', 'readstate', 'commentstate')
+    list_editable = ('transactionstate', 'readstate', 'commentstate')
     list_filter = (
         'event',
         'transactionstate',
@@ -303,7 +303,7 @@ class DonationAdmin(EventLockedMixin, CustomModelAdmin):
 
     def get_changeform_initial_data(self, request):
         return super().get_changeform_initial_data(request) | {
-            "event": latest_event_id
+            "event": event
         }
 
     def process_donations_view(self, request):

@@ -30,7 +30,7 @@ __all__ = [
     'Milestone',
 ]
 
-_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'))
+_currencyChoices = (('USD', 'US Dollars'), ('CAD', 'Canadian Dollars'), ('EUR', 'Euro'), ('NOK', 'Norwegian Kroner'))
 
 DonorVisibilityChoices = (
     ('FULL', 'Fully Visible'),
@@ -39,7 +39,7 @@ DonorVisibilityChoices = (
     ('ANON', 'Anonymous'),
 )
 
-DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal'))
+DonationDomainChoices = (('LOCAL', 'Local'), ('CHIPIN', 'ChipIn'), ('PAYPAL', 'PayPal')) #FIXME PaymentAbstraction
 
 LanguageChoices = (
     ('un', 'Unknown'),
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 class DonationQuerySet(models.QuerySet):
     def completed(self):
         qs = self
-        if not settings.PAYPAL_TEST:
+        if not settings.PAYPAL_TEST: #FIXME PaymentAbstraction; could this be "PAYMENT_TEST"?
             qs = qs.filter(testdonation=False)
         return qs.filter(transactionstate='COMPLETED')
 
@@ -400,7 +400,7 @@ class Donor(models.Model):
     )
 
     # Donor specific info
-    paypalemail = models.EmailField(
+    paypalemail = models.EmailField( #FIXME PaymentAbstraction; generic name, perhaps "donor_mail" or "partition_donorid"? what happens if the ID is *not* an email?
         max_length=128, unique=True, null=True, blank=True, verbose_name='Paypal Email'
     )
     solicitemail = models.CharField(
